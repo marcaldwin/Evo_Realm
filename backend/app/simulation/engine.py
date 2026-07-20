@@ -6,5 +6,6 @@ def advance_tick(world: World) -> World:
 
     for agent in world.agents:
         agent.hunger = min(agent.hunger + 2, 100)
+        agent.energy = max(agent.energy - 1, 0)
 
     return world

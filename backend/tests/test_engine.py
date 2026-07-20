@@ -68,3 +68,55 @@ def test_advance_tick_clamps_agent_hunger_at_one_hundred() -> None:
     advance_tick(world)
 
     assert agent.hunger == 100
+
+
+def test_advance_tick_decreases_agent_energy_by_one() -> None:
+    agent = Agent(
+        id="test-agent",
+        name="Test Agent",
+        occupation=Occupation.FARMER,
+        location_id="test-location",
+        status=AgentStatus.IDLE,
+        hunger=10,
+        energy=50,
+        health=100,
+        money=0,
+    )
+    world = World(
+        id="test-world",
+        name="Test World",
+        current_tick=0,
+        seed=1,
+        locations=[],
+        agents=[agent],
+    )
+
+    advance_tick(world)
+
+    assert agent.energy == 49
+
+
+def test_advance_tick_clamps_agent_energy_at_zero() -> None:
+    agent = Agent(
+        id="test-agent",
+        name="Test Agent",
+        occupation=Occupation.FARMER,
+        location_id="test-location",
+        status=AgentStatus.IDLE,
+        hunger=10,
+        energy=0,
+        health=100,
+        money=0,
+    )
+    world = World(
+        id="test-world",
+        name="Test World",
+        current_tick=0,
+        seed=1,
+        locations=[],
+        agents=[agent],
+    )
+
+    advance_tick(world)
+
+    assert agent.energy == 0
