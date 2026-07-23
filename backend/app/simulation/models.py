@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from ..core.enums import AgentStatus, LocationType, Occupation
+from ..core.enums import AgentStatus, LocationType, Occupation, ResourceType
 
 
 @dataclass
@@ -24,6 +24,7 @@ class Agent:
     energy: int
     health: int
     money: int
+    inventory: dict[ResourceType, int] = field(default_factory=dict)
 
 
 @dataclass
