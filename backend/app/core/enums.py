@@ -44,3 +44,14 @@ class ActionType(str, Enum):
     TALK = "talk"
     HELP = "help"
     SEEK_MEDICAL_HELP = "seek_medical_help"
+
+
+class EventType(str, Enum):
+    FARM_WORK_SUCCEEDED = "farm_work_succeeded"
+    FARM_WORK_REJECTED = "farm_work_rejected"
+    WAGE_EARNED = "wage_earned"
+    FOOD_PURCHASED = "food_purchased"
+    FOOD_PURCHASE_REJECTED = "food_purchase_rejected"
+    FOOD_CONSUMED = "food_consumed"
+    FOOD_CONSUMPTION_REJECTED = "food_consumption_rejected"
+    RESTED = "rested"

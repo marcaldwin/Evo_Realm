@@ -1,6 +1,12 @@
 from dataclasses import dataclass, field
 
-from ..core.enums import AgentStatus, LocationType, Occupation, ResourceType
+from ..core.enums import (
+    AgentStatus,
+    EventType,
+    LocationType,
+    Occupation,
+    ResourceType,
+)
 
 
 @dataclass
@@ -11,6 +17,7 @@ class Location:
     x: int
     y: int
     capacity: int
+    inventory: dict[ResourceType, int] = field(default_factory=dict)
 
 
 @dataclass
@@ -27,6 +34,15 @@ class Agent:
     inventory: dict[ResourceType, int] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class SimulationEvent:
+    tick: int
+    event_type: EventType
+    agent_id: str
+    location_id: str
+    summary: str
+
+
 @dataclass
 class World:
     id: str
@@ -35,3 +51,4 @@ class World:
     seed: int
     locations: list[Location]
     agents: list[Agent]
+    events: list[SimulationEvent] = field(default_factory=list)
