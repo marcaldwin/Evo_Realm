@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
 
+from backend.app.api.routes import health as health_routes
 from backend.app.main import app
 
 
@@ -24,11 +26,26 @@ def test_liveness_endpoint_reports_application_is_alive() -> None:
     assert response.json() == {"status": "alive"}
 
 
-def test_readiness_endpoint_reports_application_is_ready() -> None:
+def test_readiness_endpoint_reports_application_is_ready(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(health_routes, "is_database_ready", lambda: True)
+
     response = client.get("/health/ready")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ready"}
+
+
+def test_readiness_endpoint_reports_database_unavailable(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(health_routes, "is_database_ready", lambda: False)
+
+    response = client.get("/health/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "Database is unavailable"}
 
 
 def test_openapi_schema_contains_metadata_and_api_paths() -> None:
