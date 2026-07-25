@@ -60,7 +60,7 @@ class WorldCreate(ApiSchema):
     seed: int
     starting_tick: NonNegativeInteger = 0
     locations: list[LocationCreate] = Field(min_length=1)
-    agents: list[AgentCreate] = Field(min_length=1)
+    agents: list[AgentCreate]
 
     @model_validator(mode="after")
     def validate_world_relationships(self) -> Self:
@@ -122,6 +122,14 @@ class SimulationEventResponse(ApiSchema):
     agent_id: str
     location_id: str
     summary: str
+
+
+class WorldSummaryResponse(ApiSchema):
+    id: str
+    name: str
+    current_tick: int
+    seed: int
+    agent_count: int
 
 
 class WorldResponse(ApiSchema):

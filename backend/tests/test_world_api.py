@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
+from backend.app.services import world_service
 
 
 client = TestClient(app)
@@ -93,6 +94,236 @@ def test_create_world_generates_unique_world_ids(
     assert first_response.status_code == 201
     assert second_response.status_code == 201
     assert first_response.json()["id"] != second_response.json()["id"]
+
+
+def test_created_world_can_be_retrieved_by_id(
+    valid_world_payload: dict,
+) -> None:
+    create_response = client.post(
+        "/api/worlds",
+        json=valid_world_payload,
+    )
+    created_world = create_response.json()
+
+    get_response = client.get(f"/api/worlds/{created_world['id']}")
+
+    assert create_response.status_code == 201
+    assert get_response.status_code == 200
+    assert get_response.json() == created_world
+
+
+def test_get_world_returns_not_found_for_unknown_id() -> None:
+    unknown_world_id = "00000000-0000-4000-8000-000000000000"
+
+    response = client.get(f"/api/worlds/{unknown_world_id}")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "World not found"}
+
+
+def test_list_worlds_returns_empty_list_when_none_exist(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(world_service, "_worlds_by_id", {})
+
+    response = client.get("/api/worlds")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_worlds_returns_summaries_without_full_details(
+    valid_world_payload: dict,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(world_service, "_worlds_by_id", {})
+    second_payload = deepcopy(valid_world_payload)
+    second_payload["name"] = "Second World"
+    second_payload["seed"] = 99
+    second_payload["starting_tick"] = 12
+
+    first_create_response = client.post(
+        "/api/worlds",
+        json=valid_world_payload,
+    )
+    second_create_response = client.post(
+        "/api/worlds",
+        json=second_payload,
+    )
+
+    response = client.get("/api/worlds")
+
+    assert first_create_response.status_code == 201
+    assert second_create_response.status_code == 201
+    assert response.status_code == 200
+    summaries = response.json()
+    assert summaries == [
+        {
+            "id": first_create_response.json()["id"],
+            "name": "New Haven",
+            "current_tick": 7,
+            "seed": 42,
+            "agent_count": 2,
+        },
+        {
+            "id": second_create_response.json()["id"],
+            "name": "Second World",
+            "current_tick": 12,
+            "seed": 99,
+            "agent_count": 2,
+        },
+    ]
+    assert all("agents" not in summary for summary in summaries)
+    assert all("locations" not in summary for summary in summaries)
+
+
+def test_step_world_advances_exactly_one_tick_and_saves_state(
+    valid_world_payload: dict,
+) -> None:
+    create_response = client.post(
+        "/api/worlds",
+        json=valid_world_payload,
+    )
+    created_world = create_response.json()
+    world_id = created_world["id"]
+
+    step_response = client.post(f"/api/worlds/{world_id}/step")
+    get_response = client.get(f"/api/worlds/{world_id}")
+
+    assert create_response.status_code == 201
+    assert step_response.status_code == 200
+    stepped_world = step_response.json()
+    assert stepped_world["current_tick"] == 8
+    assert stepped_world["agents"][0]["hunger"] == 22
+    assert stepped_world["agents"][0]["energy"] == 89
+    assert stepped_world["agents"][1]["hunger"] == 32
+    assert stepped_world["agents"][1]["energy"] == 79
+    assert get_response.status_code == 200
+    assert get_response.json() == stepped_world
+
+
+def test_each_step_request_advances_only_one_tick(
+    valid_world_payload: dict,
+) -> None:
+    create_response = client.post(
+        "/api/worlds",
+        json=valid_world_payload,
+    )
+    world_id = create_response.json()["id"]
+
+    first_step_response = client.post(f"/api/worlds/{world_id}/step")
+    second_step_response = client.post(f"/api/worlds/{world_id}/step")
+
+    assert first_step_response.json()["current_tick"] == 8
+    assert second_step_response.json()["current_tick"] == 9
+
+
+def test_step_world_returns_not_found_for_unknown_id() -> None:
+    unknown_world_id = "00000000-0000-4000-8000-000000000000"
+
+    response = client.post(f"/api/worlds/{unknown_world_id}/step")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "World not found"}
+
+
+def test_list_world_agents_returns_validated_summaries(
+    valid_world_payload: dict,
+) -> None:
+    create_response = client.post(
+        "/api/worlds",
+        json=valid_world_payload,
+    )
+    world_id = create_response.json()["id"]
+
+    response = client.get(f"/api/worlds/{world_id}/agents")
+
+    assert create_response.status_code == 201
+    assert response.status_code == 200
+    assert response.json() == [
+        valid_world_payload["agents"][0],
+        {
+            **valid_world_payload["agents"][1],
+            "status": "idle",
+            "inventory": {},
+        },
+    ]
+
+
+def test_list_world_agents_returns_empty_list_for_world_without_agents(
+    valid_world_payload: dict,
+) -> None:
+    payload = deepcopy(valid_world_payload)
+    payload["agents"] = []
+    create_response = client.post("/api/worlds", json=payload)
+    world_id = create_response.json()["id"]
+
+    response = client.get(f"/api/worlds/{world_id}/agents")
+
+    assert create_response.status_code == 201
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_world_agents_returns_not_found_for_unknown_world() -> None:
+    unknown_world_id = "00000000-0000-4000-8000-000000000000"
+
+    response = client.get(f"/api/worlds/{unknown_world_id}/agents")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "World not found"}
+
+
+def test_list_world_events_returns_events_created_by_step(
+    valid_world_payload: dict,
+) -> None:
+    payload = deepcopy(valid_world_payload)
+    payload["agents"][0]["hunger"] = 68
+    create_response = client.post("/api/worlds", json=payload)
+    world_id = create_response.json()["id"]
+
+    step_response = client.post(f"/api/worlds/{world_id}/step")
+    response = client.get(f"/api/worlds/{world_id}/events")
+
+    assert create_response.status_code == 201
+    assert step_response.status_code == 200
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "tick": 8,
+            "event_type": "food_consumed",
+            "agent_id": "agent-1",
+            "location_id": "farm-1",
+            "summary": (
+                "Tick 8: Elena consumed 1 food and reduced hunger by 30."
+            ),
+        }
+    ]
+
+
+def test_list_world_events_returns_empty_list_when_no_events_exist(
+    valid_world_payload: dict,
+) -> None:
+    create_response = client.post(
+        "/api/worlds",
+        json=valid_world_payload,
+    )
+    world_id = create_response.json()["id"]
+
+    response = client.get(f"/api/worlds/{world_id}/events")
+
+    assert create_response.status_code == 201
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_world_events_returns_not_found_for_unknown_world() -> None:
+    unknown_world_id = "00000000-0000-4000-8000-000000000000"
+
+    response = client.get(f"/api/worlds/{unknown_world_id}/events")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "World not found"}
 
 
 @pytest.mark.parametrize("missing_field", ["name", "seed", "locations", "agents"])
@@ -186,8 +417,14 @@ def test_create_world_rejects_exceeded_location_capacity(
     assert "capacity would be exceeded" in response.text
 
 
-def test_world_creation_endpoint_appears_in_openapi() -> None:
+def test_world_endpoints_appear_in_openapi() -> None:
     response = client.get("/openapi.json")
 
     assert response.status_code == 200
-    assert "post" in response.json()["paths"]["/api/worlds"]
+    paths = response.json()["paths"]
+    assert "post" in paths["/api/worlds"]
+    assert "get" in paths["/api/worlds"]
+    assert "get" in paths["/api/worlds/{world_id}"]
+    assert "post" in paths["/api/worlds/{world_id}/step"]
+    assert "get" in paths["/api/worlds/{world_id}/agents"]
+    assert "get" in paths["/api/worlds/{world_id}/events"]
