@@ -5,10 +5,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
-from backend.app.services import world_service
 
 
 client = TestClient(app)
+pytestmark = pytest.mark.usefixtures("database_world_store")
 
 
 @pytest.fixture
@@ -121,11 +121,7 @@ def test_get_world_returns_not_found_for_unknown_id() -> None:
     assert response.json() == {"detail": "World not found"}
 
 
-def test_list_worlds_returns_empty_list_when_none_exist(
-    monkeypatch,
-) -> None:
-    monkeypatch.setattr(world_service, "_worlds_by_id", {})
-
+def test_list_worlds_returns_empty_list_when_none_exist() -> None:
     response = client.get("/api/worlds")
 
     assert response.status_code == 200
@@ -134,9 +130,7 @@ def test_list_worlds_returns_empty_list_when_none_exist(
 
 def test_list_worlds_returns_summaries_without_full_details(
     valid_world_payload: dict,
-    monkeypatch,
 ) -> None:
-    monkeypatch.setattr(world_service, "_worlds_by_id", {})
     second_payload = deepcopy(valid_world_payload)
     second_payload["name"] = "Second World"
     second_payload["seed"] = 99

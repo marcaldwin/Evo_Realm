@@ -1,9 +1,9 @@
-"""In-memory world creation and retrieval service."""
-
 from dataclasses import dataclass
 from uuid import uuid4
 
 from ..api.schemas.world import WorldCreate
+from ..db.session import SessionLocal
+from ..repositories.world_repository import WorldRepository
 from ..simulation.engine import advance_tick
 from ..simulation.models import (
     Agent,
@@ -11,9 +11,6 @@ from ..simulation.models import (
     SimulationEvent,
     World,
 )
-
-
-_worlds_by_id: dict[str, World] = {}
 
 
 @dataclass(frozen=True)
@@ -62,25 +59,29 @@ def create_world(configuration: WorldCreate) -> World:
         locations=locations,
         agents=agents,
     )
-    _worlds_by_id[world.id] = world
+    with SessionLocal.begin() as session:
+        WorldRepository(session).add(world)
     return world
 
 
 def get_world(world_id: str) -> World | None:
-    return _worlds_by_id.get(world_id)
+    with SessionLocal() as session:
+        return WorldRepository(session).get(world_id)
 
 
 def list_worlds() -> list[WorldSummary]:
-    return [
-        WorldSummary(
-            id=world.id,
-            name=world.name,
-            current_tick=world.current_tick,
-            seed=world.seed,
-            agent_count=len(world.agents),
-        )
-        for world in _worlds_by_id.values()
-    ]
+    with SessionLocal() as session:
+        summaries = WorldRepository(session).list_summaries()
+        return [
+            WorldSummary(
+                id=summary.id,
+                name=summary.name,
+                current_tick=summary.current_tick,
+                seed=summary.seed,
+                agent_count=summary.agent_count,
+            )
+            for summary in summaries
+        ]
 
 
 def list_world_agents(world_id: str) -> list[Agent] | None:
@@ -98,10 +99,12 @@ def list_world_events(world_id: str) -> list[SimulationEvent] | None:
 
 
 def step_world(world_id: str) -> World | None:
-    world = get_world(world_id)
-    if world is None:
-        return None
+    with SessionLocal.begin() as session:
+        repository = WorldRepository(session)
+        world = repository.get(world_id, for_update=True)
+        if world is None:
+            return None
 
-    updated_world = advance_tick(world)
-    _worlds_by_id[world_id] = updated_world
-    return updated_world
+        updated_world = advance_tick(world)
+        repository.save(updated_world)
+        return updated_world
