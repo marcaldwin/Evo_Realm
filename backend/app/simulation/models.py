@@ -6,6 +6,7 @@ from ..core.enums import (
     LocationType,
     Occupation,
     ResourceType,
+    WorldStatus,
 )
 
 
@@ -51,4 +52,5 @@ class World:
     seed: int
     locations: list[Location]
     agents: list[Agent]
+    status: WorldStatus = WorldStatus.CREATED
     events: list[SimulationEvent] = field(default_factory=list)

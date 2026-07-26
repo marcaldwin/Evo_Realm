@@ -75,6 +75,7 @@ def test_create_world_returns_valid_world_state(
     assert world["name"] == "New Haven"
     assert world["seed"] == 42
     assert world["current_tick"] == 7
+    assert world["status"] == "created"
     assert world["locations"] == valid_world_payload["locations"]
     assert world["agents"][0] == valid_world_payload["agents"][0]
     assert world["agents"][1] == {
@@ -155,16 +156,18 @@ def test_list_worlds_returns_summaries_without_full_details(
         {
             "id": first_create_response.json()["id"],
             "name": "New Haven",
-            "current_tick": 7,
-            "seed": 42,
-            "agent_count": 2,
+                "current_tick": 7,
+                "seed": 42,
+                "status": "created",
+                "agent_count": 2,
         },
         {
             "id": second_create_response.json()["id"],
             "name": "Second World",
-            "current_tick": 12,
-            "seed": 99,
-            "agent_count": 2,
+                "current_tick": 12,
+                "seed": 99,
+                "status": "created",
+                "agent_count": 2,
         },
     ]
     assert all("agents" not in summary for summary in summaries)
@@ -420,5 +423,8 @@ def test_world_endpoints_appear_in_openapi() -> None:
     assert "get" in paths["/api/worlds"]
     assert "get" in paths["/api/worlds/{world_id}"]
     assert "post" in paths["/api/worlds/{world_id}/step"]
+    assert "post" in paths["/api/worlds/{world_id}/start"]
+    assert "post" in paths["/api/worlds/{world_id}/pause"]
+    assert "post" in paths["/api/worlds/{world_id}/resume"]
     assert "get" in paths["/api/worlds/{world_id}/agents"]
     assert "get" in paths["/api/worlds/{world_id}/events"]

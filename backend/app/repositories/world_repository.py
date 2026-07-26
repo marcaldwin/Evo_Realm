@@ -9,6 +9,7 @@ from ..core.enums import (
     LocationType,
     Occupation,
     ResourceType,
+    WorldStatus,
 )
 from ..db.models import (
     AgentInventoryRecord,
@@ -32,6 +33,7 @@ class WorldSummaryData:
     name: str
     current_tick: int
     seed: int
+    status: WorldStatus
     agent_count: int
 
 
@@ -45,6 +47,7 @@ class WorldRepository:
             name=world.name,
             current_tick=world.current_tick,
             seed=world.seed,
+            status=world.status.value,
         )
         locations_by_id: dict[str, LocationRecord] = {}
 
@@ -115,7 +118,8 @@ class WorldRepository:
                 WorldRecord.name,
                 WorldRecord.current_tick,
                 WorldRecord.seed,
-                func.count(AgentRecord.database_id),
+                WorldRecord.status,
+                func.count(AgentRecord.database_id).label("agent_count"),
             )
             .outerjoin(
                 AgentRecord,
@@ -130,7 +134,8 @@ class WorldRepository:
                 name=row.name,
                 current_tick=row.current_tick,
                 seed=row.seed,
-                agent_count=row[4],
+                status=WorldStatus(row.status),
+                agent_count=row.agent_count,
             )
             for row in self.session.execute(statement)
         ]
@@ -143,6 +148,7 @@ class WorldRepository:
         world_record.name = world.name
         world_record.current_tick = world.current_tick
         world_record.seed = world.seed
+        world_record.status = world.status.value
 
         location_records = {
             location.id: location
@@ -319,6 +325,7 @@ class WorldRepository:
             name=world_record.name,
             current_tick=world_record.current_tick,
             seed=world_record.seed,
+            status=WorldStatus(world_record.status),
             locations=[
                 Location(
                     id=location.id,

@@ -11,6 +11,7 @@ from ...core.enums import (
     LocationType,
     Occupation,
     ResourceType,
+    WorldStatus,
 )
 
 
@@ -129,6 +130,7 @@ class WorldSummaryResponse(ApiSchema):
     name: str
     current_tick: int
     seed: int
+    status: WorldStatus
     agent_count: int
 
 
@@ -137,6 +139,7 @@ class WorldResponse(ApiSchema):
     name: str
     current_tick: int
     seed: int
+    status: WorldStatus
     locations: list[LocationResponse]
     agents: list[AgentResponse]
     events: list[SimulationEventResponse]
