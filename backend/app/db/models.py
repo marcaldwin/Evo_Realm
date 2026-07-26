@@ -8,6 +8,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from ..core.enums import WorldStatus
 from .base import Base
 
 
@@ -18,6 +19,10 @@ class WorldRecord(Base):
             "current_tick >= 0",
             name="ck_worlds_current_tick_nonnegative",
         ),
+        CheckConstraint(
+            "status IN ('created', 'running', 'paused')",
+            name="ck_worlds_status_valid",
+        ),
     )
 
     database_id: Mapped[int] = mapped_column(primary_key=True)
@@ -25,6 +30,11 @@ class WorldRecord(Base):
     name: Mapped[str] = mapped_column(String(100))
     current_tick: Mapped[int]
     seed: Mapped[int]
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default=WorldStatus.CREATED.value,
+        server_default=WorldStatus.CREATED.value,
+    )
     locations: Mapped[list[LocationRecord]] = relationship(
         back_populates="world",
         cascade="all, delete-orphan",

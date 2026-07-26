@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from uuid import uuid4
 
 from ..api.schemas.world import WorldCreate
+from ..core.enums import WorldStatus
 from ..db.session import SessionLocal
 from ..repositories.world_repository import WorldRepository
 from ..simulation.engine import advance_tick
@@ -19,7 +20,22 @@ class WorldSummary:
     name: str
     current_tick: int
     seed: int
+    status: WorldStatus
     agent_count: int
+
+
+class InvalidWorldTransitionError(Exception):
+    def __init__(
+        self,
+        action: str,
+        current_status: WorldStatus,
+    ) -> None:
+        self.action = action
+        self.current_status = current_status
+        super().__init__(
+            f"Cannot {action} world while status is "
+            f"{current_status.value}."
+        )
 
 
 def create_world(configuration: WorldCreate) -> World:
@@ -78,6 +94,7 @@ def list_worlds() -> list[WorldSummary]:
                 name=summary.name,
                 current_tick=summary.current_tick,
                 seed=summary.seed,
+                status=summary.status,
                 agent_count=summary.agent_count,
             )
             for summary in summaries
@@ -108,3 +125,54 @@ def step_world(world_id: str) -> World | None:
         updated_world = advance_tick(world)
         repository.save(updated_world)
         return updated_world
+
+
+def _transition_world(
+    world_id: str,
+    *,
+    action: str,
+    required_status: WorldStatus,
+    target_status: WorldStatus,
+) -> World | None:
+    with SessionLocal.begin() as session:
+        repository = WorldRepository(session)
+        world = repository.get(world_id, for_update=True)
+        if world is None:
+            return None
+
+        if world.status != required_status:
+            raise InvalidWorldTransitionError(
+                action,
+                world.status,
+            )
+
+        world.status = target_status
+        repository.save(world)
+        return world
+
+
+def start_world(world_id: str) -> World | None:
+    return _transition_world(
+        world_id,
+        action="start",
+        required_status=WorldStatus.CREATED,
+        target_status=WorldStatus.RUNNING,
+    )
+
+
+def pause_world(world_id: str) -> World | None:
+    return _transition_world(
+        world_id,
+        action="pause",
+        required_status=WorldStatus.RUNNING,
+        target_status=WorldStatus.PAUSED,
+    )
+
+
+def resume_world(world_id: str) -> World | None:
+    return _transition_world(
+        world_id,
+        action="resume",
+        required_status=WorldStatus.PAUSED,
+        target_status=WorldStatus.RUNNING,
+    )

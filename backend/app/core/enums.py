@@ -55,3 +55,9 @@ class EventType(str, Enum):
     FOOD_CONSUMED = "food_consumed"
     FOOD_CONSUMPTION_REJECTED = "food_consumption_rejected"
     RESTED = "rested"
+
+
+class WorldStatus(str, Enum):
+    CREATED = "created"
+    RUNNING = "running"
+    PAUSED = "paused"
