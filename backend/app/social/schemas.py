@@ -178,6 +178,10 @@ class ConversationSession(SocialSchema):
                 raise ValueError(
                     "A completed conversation requires an end tick."
                 )
+        elif self.end_tick is not None:
+            raise ValueError(
+                "An active conversation cannot have an end tick."
+            )
 
         if self.end_tick is not None and self.end_tick < self.start_tick:
             raise ValueError(

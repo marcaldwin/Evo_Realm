@@ -207,6 +207,12 @@ def upgrade() -> None:
             name="ck_conversation_outcomes_tick_nonnegative",
         ),
         sa.CheckConstraint(
+            "outcome_type IN "
+            "('successful_trade', 'emergency_help', 'refusal', "
+            "'promise_fulfilled', 'broken_promise')",
+            name="ck_conversation_outcomes_type_valid",
+        ),
+        sa.CheckConstraint(
             "NOT relationship_applied OR confirmed",
             name="ck_conversation_outcomes_applied_requires_confirmed",
         ),
@@ -263,6 +269,12 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "creation_tick >= 0",
             name="ck_conversation_turns_tick_nonnegative",
+        ),
+        sa.CheckConstraint(
+            "dialogue_act IN "
+            "('request', 'offer', 'promise', 'inform', "
+            "'agree', 'reject', 'thank')",
+            name="ck_conversation_turns_dialogue_act_valid",
         ),
         sa.CheckConstraint(
             "speaker_agent_database_id <> listener_agent_database_id",

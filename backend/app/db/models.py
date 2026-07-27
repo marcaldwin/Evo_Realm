@@ -464,6 +464,12 @@ class ConversationTurnRecord(Base):
             "creation_tick >= 0",
             name="ck_conversation_turns_tick_nonnegative",
         ),
+        CheckConstraint(
+            "dialogue_act IN "
+            "('request', 'offer', 'promise', 'inform', "
+            "'agree', 'reject', 'thank')",
+            name="ck_conversation_turns_dialogue_act_valid",
+        ),
     )
 
     database_id: Mapped[int] = mapped_column(primary_key=True)
@@ -499,6 +505,12 @@ class ConversationOutcomeRecord(Base):
         CheckConstraint(
             "confirmation_tick >= 0",
             name="ck_conversation_outcomes_tick_nonnegative",
+        ),
+        CheckConstraint(
+            "outcome_type IN "
+            "('successful_trade', 'emergency_help', 'refusal', "
+            "'promise_fulfilled', 'broken_promise')",
+            name="ck_conversation_outcomes_type_valid",
         ),
         CheckConstraint(
             "NOT relationship_applied OR confirmed",
