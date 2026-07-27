@@ -20,7 +20,9 @@ def test_session_factory() -> Iterator[sessionmaker]:
     test_engine = create_engine(
         engine.url,
         pool_pre_ping=True,
-        connect_args={"options": f"-csearch_path={schema_name}"},
+        connect_args={
+            "options": f"-csearch_path={schema_name},public"
+        },
     )
     Base.metadata.create_all(test_engine)
     factory = sessionmaker(

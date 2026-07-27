@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import (
     CheckConstraint,
+    Float,
     ForeignKey,
     String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -49,6 +52,10 @@ class WorldRecord(Base):
         back_populates="world",
         cascade="all, delete-orphan",
         order_by="SimulationEventRecord.sequence",
+    )
+    memories: Mapped[list[EpisodicMemoryRecord]] = relationship(
+        back_populates="world",
+        cascade="all, delete-orphan",
     )
 
 
@@ -171,6 +178,10 @@ class AgentRecord(Base):
         back_populates="agent",
         cascade="all, delete-orphan",
     )
+    memories: Mapped[list[EpisodicMemoryRecord]] = relationship(
+        back_populates="owner_agent",
+        cascade="all, delete-orphan",
+    )
 
 
 class AgentInventoryRecord(Base):
@@ -222,3 +233,63 @@ class SimulationEventRecord(Base):
     location_id: Mapped[str] = mapped_column(String(100))
     summary: Mapped[str]
     world: Mapped[WorldRecord] = relationship(back_populates="events")
+    memories: Mapped[list[EpisodicMemoryRecord]] = relationship(
+        back_populates="source_event",
+        cascade="all, delete-orphan",
+    )
+
+
+class EpisodicMemoryRecord(Base):
+    __tablename__ = "episodic_memories"
+    __table_args__ = (
+        UniqueConstraint(
+            "owner_agent_database_id",
+            "source_event_database_id",
+            name="uq_episodic_memories_owner_source_event",
+        ),
+        CheckConstraint(
+            "importance BETWEEN 0 AND 1",
+            name="ck_episodic_memories_importance_range",
+        ),
+        CheckConstraint(
+            "emotional_value BETWEEN -1 AND 1",
+            name="ck_episodic_memories_emotional_value_range",
+        ),
+        CheckConstraint(
+            "creation_tick >= 0",
+            name="ck_episodic_memories_creation_tick_nonnegative",
+        ),
+        CheckConstraint(
+            "embedding_dimensions > 0",
+            name="ck_episodic_memories_embedding_dimensions_positive",
+        ),
+    )
+
+    database_id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[str] = mapped_column(String(36), unique=True, index=True)
+    world_database_id: Mapped[int] = mapped_column(
+        ForeignKey("worlds.database_id", ondelete="CASCADE"),
+        index=True,
+    )
+    owner_agent_database_id: Mapped[int] = mapped_column(
+        ForeignKey("agents.database_id", ondelete="CASCADE"),
+        index=True,
+    )
+    source_event_database_id: Mapped[int] = mapped_column(
+        ForeignKey("simulation_events.database_id", ondelete="CASCADE"),
+        index=True,
+    )
+    content: Mapped[str] = mapped_column(Text)
+    importance: Mapped[float] = mapped_column(Float)
+    emotional_value: Mapped[float] = mapped_column(Float)
+    creation_tick: Mapped[int]
+    embedding: Mapped[list[float]] = mapped_column(VECTOR())
+    embedding_model: Mapped[str] = mapped_column(String(100))
+    embedding_dimensions: Mapped[int]
+    world: Mapped[WorldRecord] = relationship(back_populates="memories")
+    owner_agent: Mapped[AgentRecord] = relationship(
+        back_populates="memories"
+    )
+    source_event: Mapped[SimulationEventRecord] = relationship(
+        back_populates="memories"
+    )
