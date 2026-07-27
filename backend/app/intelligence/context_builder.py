@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 
+from ..memory.schemas import RetrievedMemory
 from ..simulation.models import Agent, Location, World
 from .schemas import (
     AgentDecisionState,
@@ -155,6 +156,7 @@ def build_decision_context(
     fallback_action_id: str,
     goals: Sequence[GoalSummary] = (),
     relationships: Sequence[RelationshipSummary] = (),
+    memories: Sequence[RetrievedMemory] = (),
     max_distance: int = 5,
     max_nearby_entities: int = 20,
 ) -> DecisionContext:
@@ -198,6 +200,7 @@ def build_decision_context(
             :max_nearby_entities
         ],
         relationships=list(relationships),
+        memories=list(memories)[:5],
         available_actions=list(available_actions),
         fallback_action_id=fallback_action_id,
     )

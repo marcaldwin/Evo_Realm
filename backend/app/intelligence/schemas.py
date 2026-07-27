@@ -8,6 +8,10 @@ from ..core.enums import (
     Occupation,
     ResourceType,
 )
+from ..memory.schemas import (
+    MemoryRetrievalResult,
+    RetrievedMemory,
+)
 
 RequiredIdentifier = Annotated[str, Field(min_length=1, max_length=100)]
 RequiredDescription = Annotated[str, Field(min_length=1, max_length=300)]
@@ -111,6 +115,10 @@ class DecisionContext(IntelligenceSchema):
     relationships: list[RelationshipSummary] = Field(
         default_factory=list
     )
+    memories: list[RetrievedMemory] = Field(
+        default_factory=list,
+        max_length=5,
+    )
     available_actions: list[AvailableAction] = Field(min_length=1)
     fallback_action_id: RequiredIdentifier
 
@@ -142,5 +150,4 @@ class DecisionResult(IntelligenceSchema):
     selected_action: AvailableAction
     proposal: ActionProposalV1 | None = None
     telemetry: DecisionTelemetry
-
-
+    memory_retrieval: MemoryRetrievalResult | None = None

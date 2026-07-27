@@ -2,6 +2,8 @@ from time import perf_counter
 
 from pydantic import ValidationError
 
+from ..memory.schemas import MemoryRetrievalResult
+from ..memory.service import EpisodicMemoryService
 from .client import (
     LLMClient,
     LLMProviderError,
@@ -12,6 +14,7 @@ from .prompt import (
     PROMPT_VERSION,
     build_decision_prompts,
     build_repair_prompts,
+    serialize_decision_context,
 )
 from .schemas import (
     ActionProposalV1,
@@ -25,8 +28,14 @@ from .schemas import (
 
 
 class StructuredDecisionService:
-    def __init__(self, client: LLMClient) -> None:
+    def __init__(
+        self,
+        client: LLMClient,
+        *,
+        memory_service: EpisodicMemoryService | None = None,
+    ) -> None:
         self.client = client
+        self.memory_service = memory_service
 
     @staticmethod
     def _find_action(
@@ -78,6 +87,7 @@ class StructuredDecisionService:
         attempt_count: int,
         fallback_used: bool,
         started_at: float,
+        memory_retrieval: MemoryRetrievalResult | None,
     ) -> DecisionResult:
         telemetry = DecisionTelemetry(
             provider=self.client.provider_name,
@@ -93,6 +103,7 @@ class StructuredDecisionService:
             selected_action=selected_action,
             proposal=proposal,
             telemetry=telemetry,
+            memory_retrieval=memory_retrieval,
         )
 
     def _build_fallback_result(
@@ -105,6 +116,7 @@ class StructuredDecisionService:
         attempt_count: int,
         started_at: float,
         proposal: ActionProposalV1 | None = None,
+        memory_retrieval: MemoryRetrievalResult | None = None,
     ) -> DecisionResult:
         return self._build_result(
             selected_action=self._get_fallback_action(context),
@@ -115,10 +127,30 @@ class StructuredDecisionService:
             attempt_count=attempt_count,
             fallback_used=True,
             started_at=started_at,
+            memory_retrieval=memory_retrieval,
         )
 
     def decide(self, context: DecisionContext) -> DecisionResult:
         started_at = perf_counter()
+        memory_retrieval: MemoryRetrievalResult | None = None
+        if self.memory_service is not None:
+            memory_query = serialize_decision_context(
+                context.model_copy(update={"memories": []})
+            )[:4000]
+            memory_retrieval = self.memory_service.retrieve(
+                world_id=context.world_id,
+                owner_agent_id=context.agent.agent_id,
+                query_text=memory_query,
+                current_tick=context.tick,
+                relationship_scores={
+                    relationship.other_agent_id: relationship.score
+                    for relationship in context.relationships
+                },
+            )
+            context = context.model_copy(
+                update={"memories": memory_retrieval.memories}
+            )
+
         system_prompt, user_prompt = build_decision_prompts(context)
 
         try:
@@ -134,6 +166,7 @@ class StructuredDecisionService:
                 validation_result="timeout",
                 attempt_count=1,
                 started_at=started_at,
+                memory_retrieval=memory_retrieval,
             )
         except LLMProviderError:
             return self._build_fallback_result(
@@ -143,6 +176,7 @@ class StructuredDecisionService:
                 validation_result="provider_error",
                 attempt_count=1,
                 started_at=started_at,
+                memory_retrieval=memory_retrieval,
             )
 
         token_usage = response.token_usage
@@ -174,6 +208,7 @@ class StructuredDecisionService:
                     validation_result="timeout",
                     attempt_count=2,
                     started_at=started_at,
+                    memory_retrieval=memory_retrieval,
                 )
             except LLMProviderError:
                 return self._build_fallback_result(
@@ -183,6 +218,7 @@ class StructuredDecisionService:
                     validation_result="provider_error",
                     attempt_count=2,
                     started_at=started_at,
+                    memory_retrieval=memory_retrieval,
                 )
 
             token_usage = TokenUsage(
@@ -210,6 +246,7 @@ class StructuredDecisionService:
                     validation_result="invalid_format",
                     attempt_count=attempt_count,
                     started_at=started_at,
+                    memory_retrieval=memory_retrieval,
                 )
 
             validation_result = "valid_after_retry"
@@ -228,6 +265,7 @@ class StructuredDecisionService:
                 validation_result="impossible_action",
                 attempt_count=attempt_count,
                 started_at=started_at,
+                memory_retrieval=memory_retrieval,
             )
 
         return self._build_result(
@@ -239,4 +277,5 @@ class StructuredDecisionService:
             attempt_count=attempt_count,
             fallback_used=False,
             started_at=started_at,
+            memory_retrieval=memory_retrieval,
         )

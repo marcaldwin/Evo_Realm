@@ -61,3 +61,8 @@ class WorldStatus(str, Enum):
     CREATED = "created"
     RUNNING = "running"
     PAUSED = "paused"
+
+
+class MemoryMode(str, Enum):
+    NO_MEMORY = "no_memory"
+    VECTOR_EPISODIC = "vector_episodic"

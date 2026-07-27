@@ -24,7 +24,8 @@ SYSTEM_PROMPT = (
     "Choose exactly one action_id from available_actions. "
     "Do not invent actions or modify their trusted parameters. "
     "Use the agent state, goals, nearby entities, relationships, and "
-    "action descriptions when deciding. "
+    "retrieved memories when deciding. "
+    "Use only the supplied action descriptions. "
     "Return only data matching the supplied response schema."
 )
 
