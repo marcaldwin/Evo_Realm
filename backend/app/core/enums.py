@@ -66,3 +66,26 @@ class WorldStatus(str, Enum):
 class MemoryMode(str, Enum):
     NO_MEMORY = "no_memory"
     VECTOR_EPISODIC = "vector_episodic"
+
+
+class DialogueAct(str, Enum):
+    REQUEST = "request"
+    OFFER = "offer"
+    PROMISE = "promise"
+    INFORM = "inform"
+    AGREE = "agree"
+    REJECT = "reject"
+    THANK = "thank"
+
+
+class ConversationStatus(str, Enum):
+    ACTIVE = "active"
+    COMPLETED = "completed"
+
+
+class InteractionOutcome(str, Enum):
+    SUCCESSFUL_TRADE = "successful_trade"
+    EMERGENCY_HELP = "emergency_help"
+    REFUSAL = "refusal"
+    PROMISE_FULFILLED = "promise_fulfilled"
+    BROKEN_PROMISE = "broken_promise"
