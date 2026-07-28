@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from uuid import uuid4
+from copy import deepcopy
 
 from ..api.schemas.world import WorldCreate
 from ..core.enums import WorldStatus
@@ -22,6 +23,12 @@ class WorldSummary:
     seed: int
     status: WorldStatus
     agent_count: int
+
+
+@dataclass(frozen=True)
+class WorldStepResult:
+    previous_world: World
+    updated_world: World
 
 
 class InvalidWorldTransitionError(Exception):
@@ -115,16 +122,31 @@ def list_world_events(world_id: str) -> list[SimulationEvent] | None:
     return list(world.events)
 
 
-def step_world(world_id: str) -> World | None:
+def step_world_with_result(
+    world_id: str,
+) -> WorldStepResult | None:
     with SessionLocal.begin() as session:
         repository = WorldRepository(session)
         world = repository.get(world_id, for_update=True)
         if world is None:
             return None
 
+        previous_world = deepcopy(world)
         updated_world = advance_tick(world)
         repository.save(updated_world)
-        return updated_world
+        result = WorldStepResult(
+            previous_world=previous_world,
+            updated_world=updated_world,
+        )
+
+    return result
+
+
+def step_world(world_id: str) -> World | None:
+    result = step_world_with_result(world_id)
+    if result is None:
+        return None
+    return result.updated_world
 
 
 def _transition_world(

@@ -2,6 +2,8 @@ from collections.abc import Callable
 
 from fastapi import APIRouter, HTTPException, status
 
+from starlette.concurrency import run_in_threadpool
+
 from ...services.world_service import (
     InvalidWorldTransitionError,
     create_world,
@@ -10,9 +12,10 @@ from ...services.world_service import (
     pause_world,
     resume_world,
     start_world,
-    step_world,
+    step_world_with_result,
 )
 from ...simulation.models import World
+from ...realtime.publisher import publish_world_step
 from ..schemas.world import (
     WorldCreate,
     WorldResponse,
@@ -86,14 +89,19 @@ def get_simulation_world(world_id: str) -> WorldResponse:
     response_model=WorldResponse,
     summary="Advance a simulation world by one tick",
 )
-def step_simulation_world(world_id: str) -> WorldResponse:
-    world = step_world(world_id)
-    if world is None:
+async def step_simulation_world(world_id: str) -> WorldResponse:
+    result = await run_in_threadpool(
+        step_world_with_result,
+        world_id,
+    )
+    if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="World not found",
         )
-    return WorldResponse.model_validate(world)
+
+    await publish_world_step(result)
+    return WorldResponse.model_validate(result.updated_world)
 
 
 @router.post(
