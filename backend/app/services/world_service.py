@@ -1,9 +1,12 @@
 from dataclasses import dataclass
 from uuid import uuid4
+from copy import deepcopy
 
 from ..api.schemas.world import WorldCreate
 from ..core.enums import WorldStatus
 from ..db.session import SessionLocal
+from ..memory.repository import MemoryRepository
+from ..memory.schemas import RetrievedMemory
 from ..repositories.world_repository import WorldRepository
 from ..simulation.engine import advance_tick
 from ..simulation.models import (
@@ -22,6 +25,19 @@ class WorldSummary:
     seed: int
     status: WorldStatus
     agent_count: int
+
+
+@dataclass(frozen=True)
+class WorldStepResult:
+    previous_world: World
+    updated_world: World
+
+
+@dataclass(frozen=True)
+class AgentInspectorData:
+    agent: Agent
+    recent_actions: list[SimulationEvent]
+    selected_retrieved_memories: list[RetrievedMemory]
 
 
 class InvalidWorldTransitionError(Exception):
@@ -63,6 +79,8 @@ def create_world(configuration: WorldCreate) -> World:
             health=agent.health,
             money=agent.money,
             inventory=dict(agent.inventory),
+            personality_traits=dict(agent.personality_traits),
+            active_goal=agent.active_goal,
         )
         for agent in configuration.agents
     ]
@@ -108,6 +126,66 @@ def list_world_agents(world_id: str) -> list[Agent] | None:
     return list(world.agents)
 
 
+def get_world_agent(
+    world_id: str,
+    agent_id: str,
+) -> Agent | None:
+    world = get_world(world_id)
+    if world is None:
+        return None
+
+    return next(
+        (
+            agent
+            for agent in world.agents
+            if agent.id == agent_id
+        ),
+        None,
+    )
+
+
+def get_world_agent_inspector(
+    world_id: str,
+    agent_id: str,
+) -> AgentInspectorData | None:
+    with SessionLocal() as session:
+        world = WorldRepository(session).get(world_id)
+        if world is None:
+            return None
+
+        agent = next(
+            (
+                candidate
+                for candidate in world.agents
+                if candidate.id == agent_id
+            ),
+            None,
+        )
+        if agent is None:
+            return None
+
+        recent_actions = list(
+            reversed(
+                [
+                    event
+                    for event in world.events
+                    if event.agent_id == agent_id
+                ]
+            )
+        )[:5]
+        selected_retrieved_memories = (
+            MemoryRepository(session).list_latest_retrieved_memories(
+                world_id=world_id,
+                owner_agent_id=agent_id,
+            )
+        )
+        return AgentInspectorData(
+            agent=agent,
+            recent_actions=recent_actions,
+            selected_retrieved_memories=selected_retrieved_memories,
+        )
+
+
 def list_world_events(world_id: str) -> list[SimulationEvent] | None:
     world = get_world(world_id)
     if world is None:
@@ -115,16 +193,31 @@ def list_world_events(world_id: str) -> list[SimulationEvent] | None:
     return list(world.events)
 
 
-def step_world(world_id: str) -> World | None:
+def step_world_with_result(
+    world_id: str,
+) -> WorldStepResult | None:
     with SessionLocal.begin() as session:
         repository = WorldRepository(session)
         world = repository.get(world_id, for_update=True)
         if world is None:
             return None
 
+        previous_world = deepcopy(world)
         updated_world = advance_tick(world)
         repository.save(updated_world)
-        return updated_world
+        result = WorldStepResult(
+            previous_world=previous_world,
+            updated_world=updated_world,
+        )
+
+    return result
+
+
+def step_world(world_id: str) -> World | None:
+    result = step_world_with_result(world_id)
+    if result is None:
+        return None
+    return result.updated_world
 
 
 def _transition_world(

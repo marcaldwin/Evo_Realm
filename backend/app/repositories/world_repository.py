@@ -82,6 +82,8 @@ class WorldRepository:
                 energy=agent.energy,
                 health=agent.health,
                 money=agent.money,
+                personality_traits=dict(agent.personality_traits),
+                active_goal=agent.active_goal,
                 location=locations_by_id[agent.location_id],
                 inventory_rows=[
                     AgentInventoryRecord(
@@ -189,6 +191,10 @@ class WorldRepository:
             agent_record.energy = agent.energy
             agent_record.health = agent.health
             agent_record.money = agent.money
+            agent_record.personality_traits = dict(
+                agent.personality_traits
+            )
+            agent_record.active_goal = agent.active_goal
             agent_record.location = location_records[agent.location_id]
             self._sync_agent_inventory(agent_record, agent.inventory)
 
@@ -356,6 +362,8 @@ class WorldRepository:
                         ResourceType(row.resource_type): row.quantity
                         for row in agent.inventory_rows
                     },
+                    personality_traits=dict(agent.personality_traits),
+                    active_goal=agent.active_goal,
                 )
                 for agent in world_record.agents
             ],

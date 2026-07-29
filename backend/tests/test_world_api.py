@@ -77,11 +77,17 @@ def test_create_world_returns_valid_world_state(
     assert world["current_tick"] == 7
     assert world["status"] == "created"
     assert world["locations"] == valid_world_payload["locations"]
-    assert world["agents"][0] == valid_world_payload["agents"][0]
+    assert world["agents"][0] == {
+        **valid_world_payload["agents"][0],
+        "personality_traits": {},
+        "active_goal": None,
+    }
     assert world["agents"][1] == {
         **valid_world_payload["agents"][1],
         "status": "idle",
         "inventory": {},
+        "personality_traits": {},
+        "active_goal": None,
     }
     assert world["events"] == []
 
@@ -271,6 +277,47 @@ def test_list_world_agents_returns_not_found_for_unknown_world() -> None:
     assert response.json() == {"detail": "World not found"}
 
 
+def test_get_world_agent_returns_inspector_snapshot(
+    valid_world_payload: dict,
+) -> None:
+    payload = deepcopy(valid_world_payload)
+    payload["agents"][0]["personality_traits"] = {
+        "curiosity": 70,
+        "cooperation": 45,
+    }
+    payload["agents"][0]["active_goal"] = "Grow food reserves"
+    create_response = client.post("/api/worlds", json=payload)
+    world_id = create_response.json()["id"]
+
+    response = client.get(
+        f"/api/worlds/{world_id}/agents/agent-1"
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        **payload["agents"][0],
+        "recent_actions": [],
+        "selected_retrieved_memories": [],
+    }
+
+
+def test_get_world_agent_returns_not_found_for_missing_agent(
+    valid_world_payload: dict,
+) -> None:
+    create_response = client.post(
+        "/api/worlds",
+        json=valid_world_payload,
+    )
+    world_id = create_response.json()["id"]
+
+    response = client.get(
+        f"/api/worlds/{world_id}/agents/missing-agent"
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Agent not found"}
+
+
 def test_list_world_events_returns_events_created_by_step(
     valid_world_payload: dict,
 ) -> None:
@@ -427,4 +474,7 @@ def test_world_endpoints_appear_in_openapi() -> None:
     assert "post" in paths["/api/worlds/{world_id}/pause"]
     assert "post" in paths["/api/worlds/{world_id}/resume"]
     assert "get" in paths["/api/worlds/{world_id}/agents"]
+    assert "get" in paths[
+        "/api/worlds/{world_id}/agents/{agent_id}"
+    ]
     assert "get" in paths["/api/worlds/{world_id}/events"]

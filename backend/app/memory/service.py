@@ -162,6 +162,21 @@ class EpisodicMemoryService:
             memories=scored_memories[:retrieval_limit],
         )
 
+    def record_retrieval(
+        self,
+        *,
+        world_id: str,
+        result: MemoryRetrievalResult,
+    ) -> None:
+        if self.mode == MemoryMode.NO_MEMORY:
+            return
+
+        repository, _ = self._vector_dependencies()
+        repository.record_retrieval(
+            world_id=world_id,
+            result=result,
+        )
+
     def _vector_dependencies(
         self,
     ) -> tuple[MemoryRepository, EmbeddingClient]:

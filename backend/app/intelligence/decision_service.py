@@ -147,6 +147,10 @@ class StructuredDecisionService:
                     for relationship in context.relationships
                 },
             )
+            self.memory_service.record_retrieval(
+                world_id=context.world_id,
+                result=memory_retrieval,
+            )
             context = context.model_copy(
                 update={"memories": memory_retrieval.memories}
             )
