@@ -11,6 +11,7 @@ const worldSnapshot: WorldSnapshot = {
   seed: 12,
   status: 'running',
   locations: [],
+  events: [],
   agents: [
     {
       id: 'elena',
@@ -34,6 +35,8 @@ describe('SettlementGridPanel', () => {
     render(
       <SettlementGridPanel
         worldSnapshot={worldSnapshot}
+        loading={false}
+        error={null}
         selectedAgentId={null}
         onAgentSelect={onAgentSelect}
       />,

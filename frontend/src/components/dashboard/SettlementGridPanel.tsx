@@ -3,12 +3,16 @@ import type { WorldSnapshot } from '../../types/world'
 
 interface SettlementGridPanelProps {
   worldSnapshot: WorldSnapshot | null
+  loading: boolean
+  error: string | null
   selectedAgentId: string | null
   onAgentSelect: (agentId: string) => void
 }
 
 export function SettlementGridPanel({
   worldSnapshot,
+  loading,
+  error,
   selectedAgentId,
   onAgentSelect,
 }: SettlementGridPanelProps) {
@@ -17,9 +21,17 @@ export function SettlementGridPanel({
       title="Settlement Grid"
       className="settlement-grid-panel"
     >
-      {worldSnapshot === null ? (
+      {error !== null ? (
         <div className="placeholder-content">
-          <p>Loading settlement data...</p>
+          <p className="dashboard-error" role="alert">{error}</p>
+        </div>
+      ) : worldSnapshot === null ? (
+        <div className="placeholder-content">
+          <p>
+            {loading
+              ? 'Loading settlement data...'
+              : 'Settlement data is not available.'}
+          </p>
         </div>
       ) : worldSnapshot.agents.length === 0 ? (
         <div className="placeholder-content">

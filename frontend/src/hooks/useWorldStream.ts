@@ -11,14 +11,25 @@ import type {
 interface WorldStreamState {
   status: ConnectionStatus
   latestEvent: StreamEventEnvelope | null
+  events: StreamEventEnvelope[]
+  connectionVersion: number
 }
+
+interface StoredWorldStreamState extends WorldStreamState {
+  worldId: string | null
+}
+
+const MAX_STREAM_EVENTS = 200
 
 export function useWorldStream(
   worldId: string | null,
 ): WorldStreamState {
-  const [state, setState] = useState<WorldStreamState>({
+  const [state, setState] = useState<StoredWorldStreamState>({
+    worldId: null,
     status: 'disconnected',
     latestEvent: null,
+    events: [],
+    connectionVersion: 0,
   })
 
   useEffect(() => {
@@ -65,8 +76,19 @@ export function useWorldStream(
       ) {
         if (active) {
           setState((current) => ({
-            ...current,
+            worldId: selectedWorldId,
             status: 'connected',
+            latestEvent: current.worldId === selectedWorldId
+              ? current.latestEvent
+              : null,
+            events: current.worldId === selectedWorldId
+              ? current.events
+              : [],
+            connectionVersion: (
+              current.worldId === selectedWorldId
+                ? current.connectionVersion
+                : 0
+            ) + 1,
           }))
         }
 
@@ -74,19 +96,44 @@ export function useWorldStream(
       }
 
       if (active) {
-        setState({
-          status: 'connected',
-          latestEvent: envelope,
+        setState((current) => {
+          const currentEvents = current.worldId === selectedWorldId
+            ? current.events
+            : []
+          const alreadyReceived = currentEvents.some(
+            (event) => event.sequence === envelope.sequence,
+          )
+
+          return {
+            worldId: selectedWorldId,
+            status: 'connected',
+            latestEvent: envelope,
+            events: alreadyReceived
+              ? currentEvents
+              : [...currentEvents, envelope].slice(
+                -MAX_STREAM_EVENTS,
+              ),
+            connectionVersion: current.worldId === selectedWorldId
+              ? current.connectionVersion
+              : 0,
+          }
         })
       }
     }
 
     socket.onopen = () => {
       if (active) {
-        setState({
+        setState((current) => ({
+          worldId: selectedWorldId,
           status: 'connecting',
           latestEvent: null,
-        })
+          events: current.worldId === selectedWorldId
+            ? current.events
+            : [],
+          connectionVersion: current.worldId === selectedWorldId
+            ? current.connectionVersion
+            : 0,
+        }))
       }
     }
 
@@ -98,6 +145,7 @@ export function useWorldStream(
       if (active) {
         setState((current) => ({
           ...current,
+          worldId: selectedWorldId,
           status: 'disconnected',
         }))
       }
@@ -107,6 +155,7 @@ export function useWorldStream(
       if (active) {
         setState((current) => ({
           ...current,
+          worldId: selectedWorldId,
           status: 'disconnected',
         }))
       }
@@ -122,8 +171,24 @@ export function useWorldStream(
     return {
       status: 'disconnected',
       latestEvent: null,
+      events: [],
+      connectionVersion: 0,
     }
   }
 
-  return state
+  if (state.worldId !== worldId) {
+    return {
+      status: 'connecting',
+      latestEvent: null,
+      events: [],
+      connectionVersion: 0,
+    }
+  }
+
+  return {
+    status: state.status,
+    latestEvent: state.latestEvent,
+    events: state.events,
+    connectionVersion: state.connectionVersion,
+  }
 }

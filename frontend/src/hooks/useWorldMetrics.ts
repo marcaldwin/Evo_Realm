@@ -1,43 +1,42 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import { getWorldSnapshot } from '../api/worlds'
+import { getWorldDashboardMetrics } from '../api/dashboard'
+import type { WorldDashboardMetrics } from '../types/dashboard'
 import type { StreamEventEnvelope } from '../types/realtime'
-import type { WorldSnapshot } from '../types/world'
 
-interface WorldSnapshotState {
-  snapshot: WorldSnapshot | null
+export interface WorldMetricsState {
+  metrics: WorldDashboardMetrics | null
   loading: boolean
   error: string | null
-  adoptSnapshot: (snapshot: WorldSnapshot) => void
 }
 
-interface StoredWorldSnapshotState {
+interface StoredWorldMetricsState extends WorldMetricsState {
   worldId: string | null
-  snapshot: WorldSnapshot | null
-  loading: boolean
-  error: string | null
 }
 
-interface RefreshCheckpoint {
+interface MetricsRefreshCheckpoint {
   worldId: string | null
   connectionVersion: number
+  commandVersion: number
   tickSequence: number | null
 }
 
-export function useWorldSnapshot(
+export function useWorldMetrics(
   worldId: string | null,
   latestEvent: StreamEventEnvelope | null,
   connectionVersion: number,
-): WorldSnapshotState {
-  const [state, setState] = useState<StoredWorldSnapshotState>({
+  commandVersion: number,
+): WorldMetricsState {
+  const [state, setState] = useState<StoredWorldMetricsState>({
     worldId: null,
-    snapshot: null,
+    metrics: null,
     loading: false,
     error: null,
   })
-  const checkpoint = useRef<RefreshCheckpoint>({
+  const checkpoint = useRef<MetricsRefreshCheckpoint>({
     worldId: null,
     connectionVersion: 0,
+    commandVersion: 0,
     tickSequence: null,
   })
 
@@ -48,18 +47,19 @@ export function useWorldSnapshot(
       checkpoint.current = {
         worldId: null,
         connectionVersion: 0,
+        commandVersion: 0,
         tickSequence: null,
       }
       return undefined
     }
 
-    const selectedWorldId = worldId
     const tickSequence = latestEvent?.event_type === 'tick_committed'
       ? latestEvent.sequence
       : checkpoint.current.tickSequence
     const needsRefresh = (
-      checkpoint.current.worldId !== selectedWorldId
+      checkpoint.current.worldId !== worldId
       || checkpoint.current.connectionVersion !== connectionVersion
+      || checkpoint.current.commandVersion !== commandVersion
       || checkpoint.current.tickSequence !== tickSequence
     )
 
@@ -68,28 +68,32 @@ export function useWorldSnapshot(
     }
 
     checkpoint.current = {
-      worldId: selectedWorldId,
+      worldId,
       connectionVersion,
+      commandVersion,
       tickSequence,
     }
+    const selectedWorldId = worldId
 
-    async function loadSnapshot() {
+    async function loadMetrics() {
       setState((current) => ({
         worldId: selectedWorldId,
-        snapshot: current.worldId === selectedWorldId
-          ? current.snapshot
+        metrics: current.worldId === selectedWorldId
+          ? current.metrics
           : null,
         loading: true,
         error: null,
       }))
 
       try {
-        const snapshot = await getWorldSnapshot(selectedWorldId)
+        const metrics = await getWorldDashboardMetrics(
+          selectedWorldId,
+        )
 
         if (active) {
           setState({
             worldId: selectedWorldId,
-            snapshot,
+            metrics,
             loading: false,
             error: null,
           })
@@ -98,54 +102,39 @@ export function useWorldSnapshot(
         if (active) {
           setState({
             worldId: selectedWorldId,
-            snapshot: null,
+            metrics: null,
             loading: false,
             error: error instanceof Error
               ? error.message
-              : 'Unable to load world snapshot',
+              : 'Unable to load world metrics',
           })
         }
       }
     }
 
-    void loadSnapshot()
+    void loadMetrics()
 
     return () => {
       active = false
     }
-  }, [connectionVersion, latestEvent, worldId])
-
-  const adoptSnapshot = useCallback((snapshot: WorldSnapshot) => {
-    setState({
-      worldId: snapshot.id,
-      snapshot,
-      loading: false,
-      error: null,
-    })
-  }, [])
+  }, [
+    commandVersion,
+    connectionVersion,
+    latestEvent,
+    worldId,
+  ])
 
   if (worldId === null) {
-    return {
-      snapshot: null,
-      loading: false,
-      error: null,
-      adoptSnapshot,
-    }
+    return { metrics: null, loading: false, error: null }
   }
 
   if (state.worldId !== worldId) {
-    return {
-      snapshot: null,
-      loading: true,
-      error: null,
-      adoptSnapshot,
-    }
+    return { metrics: null, loading: true, error: null }
   }
 
   return {
-    snapshot: state.snapshot,
+    metrics: state.metrics,
     loading: state.loading,
     error: state.error,
-    adoptSnapshot,
   }
 }

@@ -1,3 +1,5 @@
+import type { SimulationEvent } from './dashboard'
+
 export type WorldStatus =
   | 'created'
   | 'running'
@@ -43,4 +45,5 @@ export interface WorldSnapshot {
   status: WorldStatus
   locations: LocationSummary[]
   agents: AgentSummary[]
+  events: SimulationEvent[]
 }
