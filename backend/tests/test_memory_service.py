@@ -393,3 +393,13 @@ def test_decision_service_retrieves_and_records_memories(
     retrieved_memory = result.memory_retrieval.memories[0]
     assert retrieved_memory.content in decision_client.user_prompts[0]
     assert retrieved_memory.total_score >= 0
+
+    with test_session_factory() as session:
+        selected_memories = (
+            MemoryRepository(session).list_latest_retrieved_memories(
+                world_id=world.id,
+                owner_agent_id="elena",
+            )
+        )
+
+    assert selected_memories == result.memory_retrieval.memories

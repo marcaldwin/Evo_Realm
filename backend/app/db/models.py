@@ -59,6 +59,10 @@ class WorldRecord(Base):
         back_populates="world",
         cascade="all, delete-orphan",
     )
+    memory_retrievals: Mapped[list[MemoryRetrievalRecord]] = relationship(
+        back_populates="world",
+        cascade="all, delete-orphan",
+    )
     social_relationships: Mapped[list[RelationshipRecord]] = relationship(
         back_populates="world",
         cascade="all, delete-orphan",
@@ -182,6 +186,14 @@ class AgentRecord(Base):
     energy: Mapped[int]
     health: Mapped[int]
     money: Mapped[int]
+    personality_traits: Mapped[dict[str, int]] = mapped_column(
+        JSON,
+        default=dict,
+    )
+    active_goal: Mapped[str | None] = mapped_column(
+        String(300),
+        nullable=True,
+    )
     world: Mapped[WorldRecord] = relationship(back_populates="agents")
     location: Mapped[LocationRecord] = relationship(back_populates="agents")
     inventory_rows: Mapped[list[AgentInventoryRecord]] = relationship(
@@ -189,6 +201,10 @@ class AgentRecord(Base):
         cascade="all, delete-orphan",
     )
     memories: Mapped[list[EpisodicMemoryRecord]] = relationship(
+        back_populates="owner_agent",
+        cascade="all, delete-orphan",
+    )
+    memory_retrievals: Mapped[list[MemoryRetrievalRecord]] = relationship(
         back_populates="owner_agent",
         cascade="all, delete-orphan",
     )
@@ -318,6 +334,82 @@ class EpisodicMemoryRecord(Base):
     )
     source_event: Mapped[SimulationEventRecord] = relationship(
         back_populates="memories"
+    )
+    retrieval_items: Mapped[list[MemoryRetrievalItemRecord]] = relationship(
+        back_populates="memory",
+        cascade="all, delete-orphan",
+    )
+
+
+class MemoryRetrievalRecord(Base):
+    __tablename__ = "memory_retrievals"
+    __table_args__ = (
+        CheckConstraint(
+            "current_tick >= 0",
+            name="ck_memory_retrievals_tick_nonnegative",
+        ),
+    )
+
+    database_id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[str] = mapped_column(String(36), unique=True, index=True)
+    world_database_id: Mapped[int] = mapped_column(
+        ForeignKey("worlds.database_id", ondelete="CASCADE"),
+        index=True,
+    )
+    owner_agent_database_id: Mapped[int] = mapped_column(
+        ForeignKey("agents.database_id", ondelete="CASCADE"),
+        index=True,
+    )
+    query_text: Mapped[str] = mapped_column(Text)
+    current_tick: Mapped[int]
+    mode: Mapped[str] = mapped_column(String(30))
+    world: Mapped[WorldRecord] = relationship(
+        back_populates="memory_retrievals"
+    )
+    owner_agent: Mapped[AgentRecord] = relationship(
+        back_populates="memory_retrievals"
+    )
+    items: Mapped[list[MemoryRetrievalItemRecord]] = relationship(
+        back_populates="retrieval",
+        cascade="all, delete-orphan",
+        order_by="MemoryRetrievalItemRecord.position",
+    )
+
+
+class MemoryRetrievalItemRecord(Base):
+    __tablename__ = "memory_retrieval_items"
+    __table_args__ = (
+        UniqueConstraint(
+            "retrieval_database_id",
+            "position",
+            name="uq_memory_retrieval_items_position",
+        ),
+        CheckConstraint(
+            "position >= 0",
+            name="ck_memory_retrieval_items_position_nonnegative",
+        ),
+    )
+
+    database_id: Mapped[int] = mapped_column(primary_key=True)
+    retrieval_database_id: Mapped[int] = mapped_column(
+        ForeignKey("memory_retrievals.database_id", ondelete="CASCADE"),
+        index=True,
+    )
+    memory_database_id: Mapped[int] = mapped_column(
+        ForeignKey("episodic_memories.database_id", ondelete="CASCADE"),
+        index=True,
+    )
+    position: Mapped[int]
+    semantic_similarity: Mapped[float]
+    importance_score: Mapped[float]
+    recency_score: Mapped[float]
+    relationship_relevance: Mapped[float]
+    total_score: Mapped[float]
+    retrieval: Mapped[MemoryRetrievalRecord] = relationship(
+        back_populates="items"
+    )
+    memory: Mapped[EpisodicMemoryRecord] = relationship(
+        back_populates="retrieval_items"
     )
 
 

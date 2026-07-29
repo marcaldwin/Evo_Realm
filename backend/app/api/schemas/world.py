@@ -19,6 +19,8 @@ NonNegativeInteger = Annotated[int, Field(ge=0)]
 BoundedStat = Annotated[int, Field(ge=0, le=100)]
 RequiredName = Annotated[str, Field(min_length=1, max_length=100)]
 RequiredIdentifier = Annotated[str, Field(min_length=1, max_length=100)]
+PersonalityTraitValue = Annotated[int, Field(ge=-100, le=100)]
+ActiveGoal = Annotated[str, Field(min_length=1, max_length=300)]
 
 
 class ApiSchema(BaseModel):
@@ -54,6 +56,11 @@ class AgentCreate(ApiSchema):
     inventory: dict[ResourceType, NonNegativeInteger] = Field(
         default_factory=dict
     )
+    personality_traits: dict[
+        RequiredIdentifier,
+        PersonalityTraitValue,
+    ] = Field(default_factory=dict)
+    active_goal: ActiveGoal | None = None
 
 
 class WorldCreate(ApiSchema):
@@ -115,6 +122,8 @@ class AgentResponse(ApiSchema):
     health: int
     money: int
     inventory: dict[ResourceType, int]
+    personality_traits: dict[str, int]
+    active_goal: str | None
 
 
 class SimulationEventResponse(ApiSchema):

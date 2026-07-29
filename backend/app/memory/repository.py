@@ -1,15 +1,17 @@
 from dataclasses import dataclass
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from ..db.models import (
     AgentRecord,
     EpisodicMemoryRecord,
+    MemoryRetrievalItemRecord,
+    MemoryRetrievalRecord,
     SimulationEventRecord,
     WorldRecord,
 )
-from .schemas import EpisodicMemory
+from .schemas import EpisodicMemory, MemoryRetrievalResult, RetrievedMemory
 
 
 @dataclass(frozen=True)
@@ -221,6 +223,115 @@ class MemoryRepository:
                 cosine_distance=float(row[5]),
             )
             for row in self.session.execute(statement)
+        ]
+
+    def record_retrieval(
+        self,
+        *,
+        world_id: str,
+        result: MemoryRetrievalResult,
+    ) -> None:
+        agent = self.session.scalar(
+            select(AgentRecord)
+            .join(WorldRecord)
+            .where(
+                WorldRecord.id == world_id,
+                AgentRecord.id == result.owner_agent_id,
+            )
+        )
+        if agent is None:
+            raise LookupError("Memory retrieval owner does not exist.")
+
+        memory_ids = [
+            memory.memory_id
+            for memory in result.memories
+        ]
+        records_by_id = {
+            record.id: record
+            for record in self.session.scalars(
+                select(EpisodicMemoryRecord).where(
+                    EpisodicMemoryRecord.owner_agent_database_id
+                    == agent.database_id,
+                    EpisodicMemoryRecord.id.in_(memory_ids),
+                )
+            )
+        }
+        if set(records_by_id) != set(memory_ids):
+            raise LookupError("A retrieved memory does not exist.")
+
+        retrieval = MemoryRetrievalRecord(
+            id=result.retrieval_id,
+            world_database_id=agent.world_database_id,
+            owner_agent_database_id=agent.database_id,
+            query_text=result.query_text,
+            current_tick=result.current_tick,
+            mode=result.mode.value,
+        )
+        retrieval.items.extend(
+            MemoryRetrievalItemRecord(
+                memory=records_by_id[memory.memory_id],
+                position=position,
+                semantic_similarity=memory.semantic_similarity,
+                importance_score=memory.importance_score,
+                recency_score=memory.recency_score,
+                relationship_relevance=memory.relationship_relevance,
+                total_score=memory.total_score,
+            )
+            for position, memory in enumerate(result.memories)
+        )
+        self.session.add(retrieval)
+        self.session.flush()
+
+    def list_latest_retrieved_memories(
+        self,
+        *,
+        world_id: str,
+        owner_agent_id: str,
+    ) -> list[RetrievedMemory]:
+        statement = (
+            select(MemoryRetrievalRecord)
+            .join(
+                WorldRecord,
+                MemoryRetrievalRecord.world_database_id
+                == WorldRecord.database_id,
+            )
+            .join(
+                AgentRecord,
+                MemoryRetrievalRecord.owner_agent_database_id
+                == AgentRecord.database_id,
+            )
+            .where(
+                WorldRecord.id == world_id,
+                AgentRecord.id == owner_agent_id,
+            )
+            .options(
+                selectinload(MemoryRetrievalRecord.items)
+                .selectinload(MemoryRetrievalItemRecord.memory)
+                .selectinload(EpisodicMemoryRecord.source_event)
+            )
+            .order_by(MemoryRetrievalRecord.database_id.desc())
+            .limit(1)
+        )
+        retrieval = self.session.scalar(statement)
+        if retrieval is None:
+            return []
+
+        return [
+            RetrievedMemory(
+                memory_id=item.memory.id,
+                content=item.memory.content,
+                importance=item.memory.importance,
+                emotional_value=item.memory.emotional_value,
+                creation_tick=item.memory.creation_tick,
+                source_event_sequence=item.memory.source_event.sequence,
+                source_agent_id=item.memory.source_event.agent_id,
+                semantic_similarity=item.semantic_similarity,
+                importance_score=item.importance_score,
+                recency_score=item.recency_score,
+                relationship_relevance=item.relationship_relevance,
+                total_score=item.total_score,
+            )
+            for item in retrieval.items
         ]
 
     @staticmethod

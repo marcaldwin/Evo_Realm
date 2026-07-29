@@ -33,6 +33,8 @@ class Agent:
     health: int
     money: int
     inventory: dict[ResourceType, int] = field(default_factory=dict)
+    personality_traits: dict[str, int] = field(default_factory=dict)
+    active_goal: str | None = None
 
 
 @dataclass(frozen=True)
