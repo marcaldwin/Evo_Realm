@@ -1,0 +1,196 @@
+.dashboard {
+  width: min(1440px, 100%);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.dashboard-header h1,
+.dashboard-header p {
+  margin: 0;
+}
+
+.dashboard-header h1 {
+  margin-block: 4px;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.dashboard-header__eyebrow {
+  color: #8da2b5;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.dashboard-header__connections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.connection-badge {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  min-width: 150px;
+  padding: 10px 14px;
+  border: 1px solid #273342;
+  border-radius: 10px;
+  background: #121a23;
+  color: #9bacbd;
+  font-size: 0.8rem;
+}
+
+.connection-badge__indicator {
+  grid-row: 1 / 3;
+  align-self: center;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #73808c;
+}
+
+.connection-badge strong {
+  color: #e8edf2;
+  font-size: 0.75rem;
+  text-transform: capitalize;
+}
+
+.connection-badge--connecting .connection-badge__indicator {
+  background: #eab856;
+}
+
+.connection-badge--connected .connection-badge__indicator {
+  background: #4dcc8c;
+}
+
+.connection-badge--disconnected .connection-badge__indicator {
+  background: #e06666;
+}
+
+.dashboard__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 20px;
+}
+
+.dashboard__primary,
+.dashboard__sidebar {
+  display: grid;
+  align-content: start;
+  gap: 20px;
+}
+
+.dashboard-panel {
+  overflow: hidden;
+  border: 1px solid #273342;
+  border-radius: 14px;
+  background: #121a23;
+}
+
+.dashboard-panel__header {
+  padding: 16px 18px;
+  border-bottom: 1px solid #273342;
+}
+
+.dashboard-panel__header h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.03em;
+}
+
+.dashboard-panel__content {
+  padding: 18px;
+}
+
+.settlement-grid-panel .dashboard-panel__content {
+  min-height: 420px;
+}
+
+.live-event-feed-panel .dashboard-panel__content {
+  min-height: 220px;
+}
+
+.placeholder-content,
+.agent-inspector__empty,
+.event-feed__empty {
+  color: #8191a1;
+}
+
+.simulation-controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.simulation-controls button {
+  padding: 10px;
+  border: 1px solid #314052;
+  border-radius: 8px;
+  background: #192431;
+  color: #8191a1;
+}
+
+.metrics-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
+.metrics-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.metrics-list dt {
+  color: #8da2b5;
+}
+
+.metrics-list dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.event-feed {
+  margin: 0;
+  padding-left: 20px;
+}
+
+@media (max-width: 900px) {
+  .dashboard-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard {
+    padding: 16px;
+  }
+
+  .dashboard-header__connections {
+    width: 100%;
+  }
+
+  .connection-badge {
+    flex: 1;
+  }
+
+  .simulation-controls {
+    grid-template-columns: 1fr;
+  }
+}
