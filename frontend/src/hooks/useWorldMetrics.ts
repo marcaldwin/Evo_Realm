@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 
 import { getWorldDashboardMetrics } from '../api/dashboard'
 import type { WorldDashboardMetrics } from '../types/dashboard'
-import type { StreamEventEnvelope } from '../types/realtime'
 
 export interface WorldMetricsState {
   metrics: WorldDashboardMetrics | null
@@ -23,7 +22,7 @@ interface MetricsRefreshCheckpoint {
 
 export function useWorldMetrics(
   worldId: string | null,
-  latestEvent: StreamEventEnvelope | null,
+  latestTickSequence: number | null,
   connectionVersion: number,
   commandVersion: number,
 ): WorldMetricsState {
@@ -53,14 +52,11 @@ export function useWorldMetrics(
       return undefined
     }
 
-    const tickSequence = latestEvent?.event_type === 'tick_committed'
-      ? latestEvent.sequence
-      : checkpoint.current.tickSequence
     const needsRefresh = (
       checkpoint.current.worldId !== worldId
       || checkpoint.current.connectionVersion !== connectionVersion
       || checkpoint.current.commandVersion !== commandVersion
-      || checkpoint.current.tickSequence !== tickSequence
+      || checkpoint.current.tickSequence !== latestTickSequence
     )
 
     if (!needsRefresh) {
@@ -71,7 +67,7 @@ export function useWorldMetrics(
       worldId,
       connectionVersion,
       commandVersion,
-      tickSequence,
+      tickSequence: latestTickSequence,
     }
     const selectedWorldId = worldId
 
@@ -120,7 +116,7 @@ export function useWorldMetrics(
   }, [
     commandVersion,
     connectionVersion,
-    latestEvent,
+    latestTickSequence,
     worldId,
   ])
 

@@ -15,6 +15,7 @@ from ...services.world_service import (
     step_world_with_result,
 )
 from ...simulation.models import World
+from ...simulation.runtime import simulation_runtime
 from ...realtime.publisher import publish_world_step
 from ..schemas.world import (
     WorldCreate,
@@ -26,12 +27,12 @@ from ..schemas.world import (
 router = APIRouter(tags=["worlds"])
 
 
-def _apply_lifecycle_transition(
+async def _apply_lifecycle_transition(
     world_id: str,
     transition: Callable[[str], World | None],
-) -> WorldResponse:
+) -> World:
     try:
-        world = transition(world_id)
+        world = await run_in_threadpool(transition, world_id)
     except InvalidWorldTransitionError as error:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -43,7 +44,7 @@ def _apply_lifecycle_transition(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="World not found",
         )
-    return WorldResponse.model_validate(world)
+    return world
 
 
 @router.post(
@@ -109,8 +110,10 @@ async def step_simulation_world(world_id: str) -> WorldResponse:
     response_model=WorldResponse,
     summary="Start a simulation world",
 )
-def start_simulation_world(world_id: str) -> WorldResponse:
-    return _apply_lifecycle_transition(world_id, start_world)
+async def start_simulation_world(world_id: str) -> WorldResponse:
+    world = await _apply_lifecycle_transition(world_id, start_world)
+    await simulation_runtime.start(world_id)
+    return WorldResponse.model_validate(world)
 
 
 @router.post(
@@ -118,8 +121,10 @@ def start_simulation_world(world_id: str) -> WorldResponse:
     response_model=WorldResponse,
     summary="Pause a simulation world",
 )
-def pause_simulation_world(world_id: str) -> WorldResponse:
-    return _apply_lifecycle_transition(world_id, pause_world)
+async def pause_simulation_world(world_id: str) -> WorldResponse:
+    world = await _apply_lifecycle_transition(world_id, pause_world)
+    await simulation_runtime.stop(world_id)
+    return WorldResponse.model_validate(world)
 
 
 @router.post(
@@ -127,5 +132,7 @@ def pause_simulation_world(world_id: str) -> WorldResponse:
     response_model=WorldResponse,
     summary="Resume a simulation world",
 )
-def resume_simulation_world(world_id: str) -> WorldResponse:
-    return _apply_lifecycle_transition(world_id, resume_world)
+async def resume_simulation_world(world_id: str) -> WorldResponse:
+    world = await _apply_lifecycle_transition(world_id, resume_world)
+    await simulation_runtime.start(world_id)
+    return WorldResponse.model_validate(world)

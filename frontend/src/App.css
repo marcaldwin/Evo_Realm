@@ -116,31 +116,321 @@
   min-height: 420px;
 }
 
-.settlement-grid {
+.settlement-map {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
+  gap: 14px;
+}
+
+.settlement-map__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settlement-map__summary span {
+  padding: 5px 8px;
+  border: 1px solid #314052;
+  border-radius: 999px;
+  color: #9bacbd;
+  font-size: 0.72rem;
+}
+
+.settlement-map-viewport {
+  overflow-x: auto;
+  padding: 8px;
+  border: 1px solid #273342;
+  border-radius: 12px;
+  background: #0c1117;
+}
+
+.settlement-tilemap {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  min-width: 700px;
+  overflow: hidden;
+  border: 2px solid #425165;
+  border-radius: 9px;
+  background: #26382c;
+}
+
+.settlement-cell {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid rgb(12 17 23 / 20%);
+}
+
+.settlement-cell--grass {
+  background:
+    radial-gradient(circle at 28% 24%, #63854f 0 2px, transparent 3px),
+    radial-gradient(circle at 76% 70%, #486b40 0 2px, transparent 3px),
+    #557a49;
+}
+
+.settlement-cell--field {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 8px,
+      rgb(75 54 31 / 34%) 8px 10px
+    ),
+    #9a7a45;
+}
+
+.settlement-cell--path {
+  background:
+    linear-gradient(
+      135deg,
+      transparent 0 22%,
+      #a28b68 22% 78%,
+      transparent 78%
+    ),
+    #557a49;
+}
+
+.settlement-cell--road {
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0 46%,
+      rgb(235 215 151 / 60%) 46% 54%,
+      transparent 54%
+    ),
+    #665f55;
+}
+
+.settlement-cell__coordinate {
+  position: absolute;
+  z-index: 3;
+  top: 3px;
+  left: 4px;
+  color: rgb(232 237 242 / 58%);
+  font-size: 0.55rem;
+}
+
+.settlement-decoration {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: #243d2d;
+  font-size: 1.4rem;
+  transform: translate(-50%, -50%);
+  text-shadow: 0 2px 1px rgb(12 17 23 / 25%);
+}
+
+.settlement-decoration--flowers {
+  color: #f0c868;
+}
+
+.settlement-decoration--fence {
+  width: 78%;
+  height: 18px;
+  background:
+    linear-gradient(
+      #5f4127 0 0
+    ) center / 100% 4px no-repeat,
+    repeating-linear-gradient(
+      90deg,
+      #8b6038 0 5px,
+      transparent 5px 14px
+    );
+  filter: drop-shadow(0 2px 0 rgb(12 17 23 / 24%));
+}
+
+.settlement-decoration--rock {
+  color: #7e8c8d;
+}
+
+.settlement-decoration--tree {
+  color: #234a31;
+  font-size: 1.8rem;
+}
+
+.settlement-location {
+  position: absolute;
+  inset: 8px 5px 6px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1px;
+  padding: 4px;
+  border: 1px solid rgb(12 17 23 / 36%);
+  border-radius: 6px;
+  background: #384b58;
+  box-shadow: 0 3px 0 rgb(12 17 23 / 22%);
+  color: #f3f6f8;
+  text-align: center;
+}
+
+.settlement-location strong {
+  width: 100%;
+  overflow: hidden;
+  font-size: 0.62rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settlement-location > span:not(.settlement-location__symbol) {
+  color: rgb(243 246 248 / 75%);
+  font-size: 0.51rem;
+}
+
+.settlement-location__symbol {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.settlement-location .settlement-location__capacity {
+  display: none;
+}
+
+.settlement-location--home {
+  background: #8a5f4d;
+}
+
+.settlement-location--farm {
+  background: #6f7a3e;
+}
+
+.settlement-location--market {
+  background: #a06c3e;
+}
+
+.settlement-location--clinic {
+  background: #47798c;
+}
+
+.settlement-location--workshop {
+  background: #665c57;
+}
+
+.settlement-location--town_hall {
+  background: #675783;
+}
+
+.settlement-agent-layer {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  pointer-events: none;
 }
 
 .settlement-agent {
+  position: absolute;
   display: grid;
-  gap: 4px;
-  padding: 14px;
-  border: 1px solid #314052;
-  border-radius: 10px;
-  background: #192431;
-  color: #9bacbd;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  place-items: center;
+  background: rgb(12 17 23 / 18%);
+  color: #f5f7f8;
   cursor: pointer;
-  text-align: left;
+  font-size: 0.65rem;
+  font-weight: 800;
+  box-shadow: 0 2px 3px rgb(12 17 23 / 45%);
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  transition:
+    left 300ms linear,
+    top 300ms linear,
+    margin-left 300ms linear;
+  will-change: left, top;
 }
 
-.settlement-agent strong {
+.settlement-agent:hover,
+.settlement-agent:focus-visible {
+  z-index: 5;
+  outline: 2px solid #f0c868;
+  outline-offset: 1px;
+  transform: translate(-50%, calc(-50% - 1px));
+}
+
+.agent-sprite {
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  width: 58px;
+  height: 56px;
+  background-repeat: no-repeat;
+  background-size: 174px 224px;
+  background-position-x: -58px;
+  image-rendering: pixelated;
+  pointer-events: none;
+  transform: translateX(-50%) scale(0.68);
+  transform-origin: bottom center;
+}
+
+.agent-sprite--down {
+  background-position-y: 0;
+}
+
+.agent-sprite--right {
+  background-position-y: -56px;
+}
+
+.agent-sprite--left {
+  background-position-y: -112px;
+}
+
+.agent-sprite--up {
+  background-position-y: -168px;
+}
+
+.agent-sprite--walking {
+  animation: agent-sprite-walk 420ms steps(3) infinite;
+}
+
+@keyframes agent-sprite-walk {
+  from {
+    background-position-x: 0;
+  }
+
+  to {
+    background-position-x: -174px;
+  }
+}
+
+.settlement-agent__name {
+  position: absolute;
+  right: -4px;
+  bottom: calc(100% + 5px);
+  display: none;
+  width: max-content;
+  max-width: 110px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: #0c1117;
   color: #e8edf2;
+  font-size: 0.62rem;
+  font-weight: 600;
+}
+
+.settlement-agent:hover .settlement-agent__name,
+.settlement-agent:focus-visible .settlement-agent__name {
+  display: block;
 }
 
 .settlement-agent--selected {
   border-color: #4dcc8c;
-  background: #18332b;
+  background: #1f6d50;
+  box-shadow:
+    0 0 0 2px rgb(77 204 140 / 28%),
+    0 2px 3px rgb(12 17 23 / 45%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settlement-agent {
+    transition: none;
+  }
+
+  .agent-sprite--walking {
+    animation: none;
+  }
 }
 
 .live-event-feed-panel .dashboard-panel__content {
@@ -341,6 +631,26 @@
   color: #e8edf2;
 }
 
+.event-feed__display-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.event-feed__toggle {
+  padding: 7px 10px;
+  border: 1px solid #314052;
+  border-radius: 8px;
+  background: #192431;
+  color: #e8edf2;
+  cursor: pointer;
+}
+
+.event-feed__toggle:hover,
+.event-feed__toggle:focus-visible {
+  border-color: #4dcc8c;
+}
+
 .event-feed li {
   display: grid;
   gap: 6px;
@@ -391,5 +701,9 @@
 
   .simulation-controls {
     grid-template-columns: 1fr;
+  }
+
+  .settlement-tilemap {
+    min-width: 620px;
   }
 }

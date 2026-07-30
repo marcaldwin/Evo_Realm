@@ -1,6 +1,10 @@
 import pytest
 
-from backend.app.core.enums import EventType, ResourceType
+from backend.app.core.enums import (
+    EventType,
+    LocationType,
+    ResourceType,
+)
 from backend.app.simulation.runner import (
     create_demo_world,
     run_demo_simulation,
@@ -26,7 +30,19 @@ def test_demo_world_contains_five_agents_and_initialized_state() -> None:
     world = create_demo_world(seed=42)
 
     assert len(world.agents) == 5
-    assert len(world.locations) == 3
+    assert len(world.locations) == 7
+    assert {
+        location.location_type
+        for location in world.locations
+    } == set(LocationType)
+    assert len({
+        (location.x, location.y)
+        for location in world.locations
+    }) == len(world.locations)
+    assert all(
+        0 <= location.x <= 9 and 0 <= location.y <= 9
+        for location in world.locations
+    )
     assert world.current_tick == 0
     assert world.events == []
     assert all(agent.inventory for agent in world.agents)

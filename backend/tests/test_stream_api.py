@@ -154,21 +154,12 @@ def test_reconnect_requires_fresh_snapshot_before_new_events() -> None:
         second_socket.send_json(
             {
                 "type": "snapshot_loaded",
-                "snapshot_tick": 1,
-            }
-        )
-        stale_response = second_socket.receive_json()
-
-        assert stale_response["tick"] == 2
-        assert stale_response["payload"]["snapshot_required"] is True
-
-        second_socket.send_json(
-            {
-                "type": "snapshot_loaded",
-                "snapshot_tick": 2,
+                "snapshot_tick": reconnect_ready["tick"],
             }
         )
         subscribed = second_socket.receive_json()
+
+        assert subscribed["tick"] == 2
         assert subscribed["payload"]["subscribed"] is True
 
         third_step = client.post(
@@ -180,3 +171,31 @@ def test_reconnect_requires_fresh_snapshot_before_new_events() -> None:
     assert next_tick_event["event_type"] == "tick_committed"
     assert next_tick_event["sequence"] == 5
     assert next_tick_event["tick"] == 3
+
+
+def test_stream_subscribes_when_world_advances_during_handshake() -> None:
+    world = create_world()
+    world_id = world["id"]
+
+    with client.websocket_connect(
+        f"/api/worlds/{world_id}/stream"
+    ) as websocket:
+        ready = websocket.receive_json()
+        step_response = client.post(
+            f"/api/worlds/{world_id}/step"
+        )
+
+        websocket.send_json(
+            {
+                "type": "snapshot_loaded",
+                "snapshot_tick": ready["tick"],
+            }
+        )
+        subscribed = websocket.receive_json()
+
+    assert step_response.status_code == 200
+    assert subscribed["tick"] == 1
+    assert subscribed["payload"] == {
+        "snapshot_required": False,
+        "subscribed": True,
+    }

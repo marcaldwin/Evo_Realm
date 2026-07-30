@@ -5,6 +5,14 @@ export type WorldStatus =
   | 'running'
   | 'paused'
 
+export type LocationType =
+  | 'home'
+  | 'farm'
+  | 'market'
+  | 'clinic'
+  | 'workshop'
+  | 'town_hall'
+
 export interface WorldSummary {
   id: string
   name: string
@@ -30,7 +38,7 @@ export interface AgentSummary {
 export interface LocationSummary {
   id: string
   name: string
-  location_type: string
+  location_type: LocationType
   x: number
   y: number
   capacity: number

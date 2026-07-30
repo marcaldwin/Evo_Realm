@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getWorldSnapshot } from '../api/worlds'
-import type { StreamEventEnvelope } from '../types/realtime'
 import type { WorldSnapshot } from '../types/world'
 
 interface WorldSnapshotState {
@@ -26,7 +25,7 @@ interface RefreshCheckpoint {
 
 export function useWorldSnapshot(
   worldId: string | null,
-  latestEvent: StreamEventEnvelope | null,
+  latestTickSequence: number | null,
   connectionVersion: number,
 ): WorldSnapshotState {
   const [state, setState] = useState<StoredWorldSnapshotState>({
@@ -54,13 +53,10 @@ export function useWorldSnapshot(
     }
 
     const selectedWorldId = worldId
-    const tickSequence = latestEvent?.event_type === 'tick_committed'
-      ? latestEvent.sequence
-      : checkpoint.current.tickSequence
     const needsRefresh = (
       checkpoint.current.worldId !== selectedWorldId
       || checkpoint.current.connectionVersion !== connectionVersion
-      || checkpoint.current.tickSequence !== tickSequence
+      || checkpoint.current.tickSequence !== latestTickSequence
     )
 
     if (!needsRefresh) {
@@ -70,7 +66,7 @@ export function useWorldSnapshot(
     checkpoint.current = {
       worldId: selectedWorldId,
       connectionVersion,
-      tickSequence,
+      tickSequence: latestTickSequence,
     }
 
     async function loadSnapshot() {
@@ -113,7 +109,7 @@ export function useWorldSnapshot(
     return () => {
       active = false
     }
-  }, [connectionVersion, latestEvent, worldId])
+  }, [connectionVersion, latestTickSequence, worldId])
 
   const adoptSnapshot = useCallback((snapshot: WorldSnapshot) => {
     setState({

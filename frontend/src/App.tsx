@@ -23,6 +23,7 @@ function App() {
   const {
     status: websocketStatus,
     latestEvent,
+    latestTickSequence,
     events: streamEvents,
     connectionVersion,
   } = useWorldStream(worldId)
@@ -33,13 +34,13 @@ function App() {
     adoptSnapshot,
   } = useWorldSnapshot(
     worldId,
-    latestEvent,
+    latestTickSequence,
     connectionVersion,
   )
   const worldControls = useWorldControls(worldId, adoptSnapshot)
   const worldMetrics = useWorldMetrics(
     worldId,
-    latestEvent,
+    latestTickSequence,
     connectionVersion,
     worldControls.completionVersion,
   )

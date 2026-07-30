@@ -9,6 +9,8 @@ interface LiveEventFeedPanelProps {
   connectionStatus: ConnectionStatus
 }
 
+const COLLAPSED_EVENT_COUNT = 5
+
 function formatEventType(eventType: string): string {
   return eventType.replaceAll('_', ' ')
 }
@@ -18,6 +20,7 @@ export function LiveEventFeedPanel({
   connectionStatus,
 }: LiveEventFeedPanelProps) {
   const [selectedType, setSelectedType] = useState('all')
+  const [showAll, setShowAll] = useState(false)
   const eventTypes = useMemo(
     () => [...new Set(
       state.events.map((event) => event.event_type),
@@ -30,11 +33,16 @@ export function LiveEventFeedPanel({
   )
     ? selectedType
     : 'all'
-  const visibleEvents = effectiveType === 'all'
+  const filteredEvents = effectiveType === 'all'
     ? state.events
     : state.events.filter(
       (event) => event.event_type === effectiveType,
     )
+  const visibleEvents = showAll
+    ? filteredEvents
+    : filteredEvents.slice(0, COLLAPSED_EVENT_COUNT)
+  const canToggleEvents =
+    filteredEvents.length > COLLAPSED_EVENT_COUNT
 
   return (
     <DashboardPanel
@@ -46,7 +54,10 @@ export function LiveEventFeedPanel({
           Event type
           <select
             value={effectiveType}
-            onChange={(event) => setSelectedType(event.target.value)}
+            onChange={(event) => {
+              setSelectedType(event.target.value)
+              setShowAll(false)
+            }}
           >
             <option value="all">All events</option>
             {eventTypes.map((eventType) => (
@@ -56,7 +67,22 @@ export function LiveEventFeedPanel({
             ))}
           </select>
         </label>
-        <span>{visibleEvents.length} shown</span>
+        <div className="event-feed__display-controls">
+          <span>
+            {visibleEvents.length} of {filteredEvents.length} shown
+          </span>
+          {canToggleEvents && (
+            <button
+              className="event-feed__toggle"
+              type="button"
+              aria-controls="live-event-list"
+              aria-expanded={showAll}
+              onClick={() => setShowAll((current) => !current)}
+            >
+              {showAll ? 'Show less' : 'Show all'}
+            </button>
+          )}
+        </div>
       </div>
 
       {connectionStatus === 'disconnected' && (
@@ -80,7 +106,11 @@ export function LiveEventFeedPanel({
           No events match this filter.
         </p>
       ) : (
-        <ol className="event-feed" aria-live="polite">
+        <ol
+          className="event-feed"
+          id="live-event-list"
+          aria-live="polite"
+        >
           {visibleEvents.map((event) => (
             <li key={event.id}>
               <div className="event-feed__meta">

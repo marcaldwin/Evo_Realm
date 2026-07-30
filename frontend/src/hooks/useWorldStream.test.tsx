@@ -73,6 +73,7 @@ describe('useWorldStream', () => {
 
     expect(result.current.status).toBe('connected')
     expect(result.current.connectionVersion).toBe(1)
+    expect(result.current.latestTickSequence).toBe(2)
     expect(
       result.current.events.map((event) => event.sequence),
     ).toEqual([1, 2])

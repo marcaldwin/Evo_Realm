@@ -4,6 +4,7 @@ from ..core.enums import (
     LocationType,
     Occupation,
     ResourceType,
+    WorldStatus,
 )
 from .models import Agent, SimulationEvent, World
 
@@ -21,6 +22,13 @@ FARM_WORK_ALLOWED_STATUSES = frozenset(
     {
         AgentStatus.IDLE,
         AgentStatus.WORKING,
+    }
+)
+MOVEMENT_ALLOWED_STATUSES = frozenset(
+    {
+        AgentStatus.IDLE,
+        AgentStatus.WORKING,
+        AgentStatus.MOVING,
     }
 )
 
@@ -94,6 +102,150 @@ def apply_automatic_resting(agent: Agent, world: World) -> None:
             f"recovered {energy_recovered} energy."
         ),
     )
+
+
+def reject_movement(agent: Agent, world: World, reason: str) -> bool:
+    record_event(
+        world,
+        EventType.AGENT_MOVEMENT_REJECTED,
+        agent,
+        (
+            f"Tick {world.current_tick}: {agent.name} failed to move "
+            f"because {reason}."
+        ),
+    )
+    return False
+
+
+def move_agent(
+    agent: Agent,
+    world: World,
+    destination_location_id: str,
+) -> bool:
+    locations_by_id = {
+        location.id: location
+        for location in world.locations
+    }
+    current_location = locations_by_id.get(agent.location_id)
+    destination = locations_by_id.get(destination_location_id)
+
+    if current_location is None:
+        return reject_movement(
+            agent,
+            world,
+            "their current location did not exist",
+        )
+    if destination is None:
+        return reject_movement(
+            agent,
+            world,
+            "the destination did not exist",
+        )
+    if destination.id == current_location.id:
+        return reject_movement(
+            agent,
+            world,
+            "they were already at the destination",
+        )
+    if agent.health <= 0:
+        return reject_movement(
+            agent,
+            world,
+            "they were not healthy enough to act",
+        )
+    if agent.energy <= 0:
+        return reject_movement(
+            agent,
+            world,
+            "they lacked enough energy",
+        )
+    if agent.status not in MOVEMENT_ALLOWED_STATUSES:
+        return reject_movement(
+            agent,
+            world,
+            f"their status was {agent.status.value}",
+        )
+
+    destination_occupancy = sum(
+        candidate.location_id == destination.id
+        for candidate in world.agents
+    )
+    if destination_occupancy >= destination.capacity:
+        return reject_movement(
+            agent,
+            world,
+            f"{destination.name} was at capacity",
+        )
+
+    source_name = current_location.name
+    agent.location_id = destination.id
+    record_event(
+        world,
+        EventType.AGENT_MOVED,
+        agent,
+        (
+            f"Tick {world.current_tick}: {agent.name} moved from "
+            f"{source_name} to {destination.name}."
+        ),
+    )
+    return True
+
+
+def apply_automatic_movement(world: World) -> None:
+    if len(world.locations) < 2:
+        return
+
+    location_indexes = {
+        location.id: index
+        for index, location in enumerate(world.locations)
+    }
+
+    for agent in world.agents:
+        if (
+            agent.health <= 0
+            or agent.energy <= 0
+            or agent.status not in MOVEMENT_ALLOWED_STATUSES
+        ):
+            continue
+
+        current_index = location_indexes.get(agent.location_id)
+        if current_index is None:
+            reject_movement(
+                agent,
+                world,
+                "their current location did not exist",
+            )
+            continue
+
+        destination = next(
+            (
+                world.locations[
+                    (current_index + offset) % len(world.locations)
+                ]
+                for offset in range(1, len(world.locations))
+                if sum(
+                    candidate.location_id
+                    == world.locations[
+                        (current_index + offset)
+                        % len(world.locations)
+                    ].id
+                    for candidate in world.agents
+                )
+                < world.locations[
+                    (current_index + offset) % len(world.locations)
+                ].capacity
+            ),
+            None,
+        )
+        if destination is None:
+            reject_movement(
+                agent,
+                world,
+                "no destination had available capacity",
+            )
+            continue
+
+        move_agent(agent, world, destination.id)
 
 
 def perform_farm_work(agent: Agent, world: World) -> bool:
@@ -254,5 +406,8 @@ def advance_tick(world: World) -> World:
         agent.energy = max(agent.energy - 1, 0)
         apply_automatic_eating(agent, world)
         apply_automatic_resting(agent, world)
+
+    if world.status == WorldStatus.RUNNING:
+        apply_automatic_movement(world)
 
     return world

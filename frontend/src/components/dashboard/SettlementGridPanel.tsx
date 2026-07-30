@@ -1,5 +1,6 @@
 import { DashboardPanel } from './DashboardPanel'
 import type { WorldSnapshot } from '../../types/world'
+import { SettlementTilemap } from './SettlementTilemap'
 
 interface SettlementGridPanelProps {
   worldSnapshot: WorldSnapshot | null
@@ -33,29 +34,23 @@ export function SettlementGridPanel({
               : 'Settlement data is not available.'}
           </p>
         </div>
-      ) : worldSnapshot.agents.length === 0 ? (
+      ) : worldSnapshot.locations.length === 0 ? (
         <div className="placeholder-content">
-          <p>This world has no agents.</p>
+          <p>This world has no settlement locations.</p>
         </div>
       ) : (
-        <div className="settlement-grid">
-          {worldSnapshot.agents.map((agent) => (
-            <button
-              className={
-                selectedAgentId === agent.id
-                  ? 'settlement-agent settlement-agent--selected'
-                  : 'settlement-agent'
-              }
-              key={agent.id}
-              type="button"
-              aria-pressed={selectedAgentId === agent.id}
-              onClick={() => onAgentSelect(agent.id)}
-            >
-              <strong>{agent.name}</strong>
-              <span>{agent.occupation}</span>
-              <span>{agent.status}</span>
-            </button>
-          ))}
+        <div className="settlement-map">
+          <div className="settlement-map__summary">
+            <span>10 × 10 tiles</span>
+            <span>{worldSnapshot.locations.length} locations</span>
+            <span>{worldSnapshot.agents.length} agents</span>
+          </div>
+          <SettlementTilemap
+            locations={worldSnapshot.locations}
+            agents={worldSnapshot.agents}
+            selectedAgentId={selectedAgentId}
+            onAgentSelect={onAgentSelect}
+          />
         </div>
       )}
     </DashboardPanel>

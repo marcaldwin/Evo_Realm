@@ -96,6 +96,35 @@ def test_validator_rejects_invalid_location_capacity() -> None:
         validate_world_state(world)
 
 
+@pytest.mark.parametrize(
+    ("axis", "value"),
+    [
+        ("x", -1),
+        ("x", 10),
+        ("y", -1),
+        ("y", 10),
+    ],
+)
+def test_validator_rejects_out_of_bounds_location_coordinates(
+    axis: str,
+    value: int,
+) -> None:
+    world = create_demo_world(seed=42)
+    setattr(world.locations[0], axis, value)
+
+    with pytest.raises(ValueError, match="invalid coordinates"):
+        validate_world_state(world)
+
+
+def test_validator_rejects_duplicate_location_coordinates() -> None:
+    world = create_demo_world(seed=42)
+    world.locations[1].x = world.locations[0].x
+    world.locations[1].y = world.locations[0].y
+
+    with pytest.raises(ValueError, match="duplicate location coordinates"):
+        validate_world_state(world)
+
+
 def test_successful_purchase_conserves_transferred_food() -> None:
     world = create_demo_world(seed=42)
     buyer = next(agent for agent in world.agents if agent.id == "sofia")

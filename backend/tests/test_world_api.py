@@ -387,6 +387,10 @@ def test_create_world_rejects_incomplete_input(
     ("path", "invalid_value"),
     [
         (("starting_tick",), -1),
+        (("locations", 0, "x"), -1),
+        (("locations", 0, "x"), 10),
+        (("locations", 0, "y"), -1),
+        (("locations", 0, "y"), 10),
         (("locations", 0, "capacity"), -1),
         (("locations", 0, "inventory"), {"food": -1}),
         (("agents", 0, "hunger"), 101),
@@ -422,6 +426,19 @@ def test_create_world_rejects_duplicate_location_ids(
 
     assert response.status_code == 422
     assert "Location IDs must be unique" in response.text
+
+
+def test_create_world_rejects_duplicate_location_coordinates(
+    valid_world_payload: dict,
+) -> None:
+    payload = deepcopy(valid_world_payload)
+    payload["locations"][1]["x"] = payload["locations"][0]["x"]
+    payload["locations"][1]["y"] = payload["locations"][0]["y"]
+
+    response = client.post("/api/worlds", json=payload)
+
+    assert response.status_code == 422
+    assert "Location coordinates must be unique" in response.text
 
 
 def test_create_world_rejects_duplicate_agent_ids(

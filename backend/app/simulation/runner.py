@@ -25,26 +25,60 @@ def create_demo_world(seed: int) -> World:
         id="north-farm",
         name="North Farm",
         location_type=LocationType.FARM,
-        x=0,
-        y=0,
+        x=1,
+        y=1,
         capacity=10,
     )
     market = Location(
         id="central-market",
         name="Central Market",
         location_type=LocationType.MARKET,
-        x=5,
-        y=0,
+        x=4,
+        y=3,
         capacity=20,
         inventory={ResourceType.FOOD: 100},
     )
-    home = Location(
+    clinic = Location(
+        id="community-clinic",
+        name="Community Clinic",
+        location_type=LocationType.CLINIC,
+        x=7,
+        y=3,
+        capacity=8,
+        inventory={ResourceType.MEDICINE: 20},
+    )
+    town_hall = Location(
+        id="town-hall",
+        name="Town Hall",
+        location_type=LocationType.TOWN_HALL,
+        x=4,
+        y=5,
+        capacity=12,
+    )
+    hilltop_home = Location(
+        id="hilltop-home",
+        name="Hilltop Home",
+        location_type=LocationType.HOME,
+        x=1,
+        y=5,
+        capacity=4,
+    )
+    riverside_home = Location(
         id="riverside-home",
         name="Riverside Home",
         location_type=LocationType.HOME,
         x=2,
-        y=3,
-        capacity=10,
+        y=7,
+        capacity=4,
+    )
+    workshop = Location(
+        id="east-workshop",
+        name="East Workshop",
+        location_type=LocationType.WORKSHOP,
+        x=7,
+        y=7,
+        capacity=8,
+        inventory={ResourceType.WOOD: 30},
     )
 
     agent_specs = [
@@ -84,7 +118,7 @@ def create_demo_world(seed: int) -> World:
             "mia",
             "Mia",
             Occupation.DOCTOR,
-            home.id,
+            clinic.id,
             1,
             randomizer.randint(5, 15),
         ),
@@ -111,7 +145,15 @@ def create_demo_world(seed: int) -> World:
         name="EvoRealm Demo World",
         current_tick=0,
         seed=seed,
-        locations=[farm, market, home],
+        locations=[
+            farm,
+            market,
+            clinic,
+            town_hall,
+            hilltop_home,
+            riverside_home,
+            workshop,
+        ],
         agents=agents,
     )
 
@@ -129,7 +171,25 @@ def validate_world_state(world: World) -> None:
         raise ValueError("World contains duplicate location IDs.")
 
     occupancy = {location_id: 0 for location_id in location_ids}
+    location_coordinates: set[tuple[int, int]] = set()
     for location in world.locations:
+        if (
+            not isinstance(location.x, int)
+            or isinstance(location.x, bool)
+            or not 0 <= location.x <= 9
+            or not isinstance(location.y, int)
+            or isinstance(location.y, bool)
+            or not 0 <= location.y <= 9
+        ):
+            raise ValueError(
+                f"Location {location.id} has invalid coordinates."
+            )
+        coordinate = (location.x, location.y)
+        if coordinate in location_coordinates:
+            raise ValueError(
+                "World contains duplicate location coordinates."
+            )
+        location_coordinates.add(coordinate)
         if (
             not isinstance(location.capacity, int)
             or isinstance(location.capacity, bool)

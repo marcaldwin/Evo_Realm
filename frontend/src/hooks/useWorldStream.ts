@@ -11,6 +11,7 @@ import type {
 interface WorldStreamState {
   status: ConnectionStatus
   latestEvent: StreamEventEnvelope | null
+  latestTickSequence: number | null
   events: StreamEventEnvelope[]
   connectionVersion: number
 }
@@ -28,6 +29,7 @@ export function useWorldStream(
     worldId: null,
     status: 'disconnected',
     latestEvent: null,
+    latestTickSequence: null,
     events: [],
     connectionVersion: 0,
   })
@@ -81,6 +83,10 @@ export function useWorldStream(
             latestEvent: current.worldId === selectedWorldId
               ? current.latestEvent
               : null,
+            latestTickSequence:
+              current.worldId === selectedWorldId
+                ? current.latestTickSequence
+                : null,
             events: current.worldId === selectedWorldId
               ? current.events
               : [],
@@ -108,6 +114,12 @@ export function useWorldStream(
             worldId: selectedWorldId,
             status: 'connected',
             latestEvent: envelope,
+            latestTickSequence:
+              envelope.event_type === 'tick_committed'
+                ? envelope.sequence
+                : current.worldId === selectedWorldId
+                  ? current.latestTickSequence
+                  : null,
             events: alreadyReceived
               ? currentEvents
               : [...currentEvents, envelope].slice(
@@ -127,6 +139,10 @@ export function useWorldStream(
           worldId: selectedWorldId,
           status: 'connecting',
           latestEvent: null,
+          latestTickSequence:
+            current.worldId === selectedWorldId
+              ? current.latestTickSequence
+              : null,
           events: current.worldId === selectedWorldId
             ? current.events
             : [],
@@ -171,6 +187,7 @@ export function useWorldStream(
     return {
       status: 'disconnected',
       latestEvent: null,
+      latestTickSequence: null,
       events: [],
       connectionVersion: 0,
     }
@@ -180,6 +197,7 @@ export function useWorldStream(
     return {
       status: 'connecting',
       latestEvent: null,
+      latestTickSequence: null,
       events: [],
       connectionVersion: 0,
     }
@@ -188,6 +206,7 @@ export function useWorldStream(
   return {
     status: state.status,
     latestEvent: state.latestEvent,
+    latestTickSequence: state.latestTickSequence,
     events: state.events,
     connectionVersion: state.connectionVersion,
   }

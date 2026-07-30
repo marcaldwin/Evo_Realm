@@ -30,50 +30,44 @@ async def stream_world(
     await stream_manager.accept(websocket)
 
     try:
-        while True:
-            ready_event = stream_manager.ready_event(
-                world_id=world_id,
-                tick=world.current_tick,
-            )
-            await websocket.send_json(
-                ready_event.model_dump(mode="json")
-            )
+        ready_event = stream_manager.ready_event(
+            world_id=world_id,
+            tick=world.current_tick,
+        )
+        await websocket.send_json(
+            ready_event.model_dump(mode="json")
+        )
 
-            try:
-                message = SnapshotLoadedMessage.model_validate(
-                    await websocket.receive_json()
-                )
-            except ValidationError:
-                await websocket.close(
-                    code=4400,
-                    reason="Invalid snapshot acknowledgement",
-                )
-                return
-
-            latest_world = await run_in_threadpool(
-                get_world,
-                world_id,
+        try:
+            SnapshotLoadedMessage.model_validate(
+                await websocket.receive_json()
             )
-            if latest_world is None:
-                await websocket.close(
-                    code=4404,
-                    reason="World not found",
-                )
-                return
-
-            if message.snapshot_tick != latest_world.current_tick:
-                world = latest_world
-                continue
-
-            stream_manager.subscribe(world_id, websocket)
-            subscribed_event = stream_manager.subscribed_event(
-                world_id=world_id,
-                tick=latest_world.current_tick,
+        except ValidationError:
+            await websocket.close(
+                code=4400,
+                reason="Invalid snapshot acknowledgement",
             )
-            await websocket.send_json(
-                subscribed_event.model_dump(mode="json")
+            return
+
+        latest_world = await run_in_threadpool(
+            get_world,
+            world_id,
+        )
+        if latest_world is None:
+            await websocket.close(
+                code=4404,
+                reason="World not found",
             )
-            break
+            return
+
+        stream_manager.subscribe(world_id, websocket)
+        subscribed_event = stream_manager.subscribed_event(
+            world_id=world_id,
+            tick=latest_world.current_tick,
+        )
+        await websocket.send_json(
+            subscribed_event.model_dump(mode="json")
+        )
 
         while True:
             await websocket.receive_text()

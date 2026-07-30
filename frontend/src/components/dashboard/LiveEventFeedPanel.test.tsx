@@ -43,4 +43,41 @@ describe('LiveEventFeedPanel', () => {
     expect(screen.getByText('Elena offered food.')).not.toBeNull()
     expect(screen.queryByText('Marco ate food.')).toBeNull()
   })
+
+  it('shows five events by default and can expand and collapse the feed', () => {
+    render(
+      <LiveEventFeedPanel
+        connectionStatus="connected"
+        state={{
+          events: Array.from({ length: 7 }, (_, index) => ({
+            id: `event-${index + 1}`,
+            tick: 7 - index,
+            event_type: 'agent_moved',
+            timestamp: null,
+            summary: `Movement event ${index + 1}`,
+          })),
+          loading: false,
+          error: null,
+        }}
+      />,
+    )
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(5)
+    expect(screen.getByText('5 of 7 shown')).not.toBeNull()
+    expect(screen.queryByText('Movement event 6')).toBeNull()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Show all' }),
+    )
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(7)
+    expect(screen.getByText('Movement event 6')).not.toBeNull()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Show less' }),
+    )
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(5)
+    expect(screen.queryByText('Movement event 6')).toBeNull()
+  })
 })

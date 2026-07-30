@@ -17,6 +17,7 @@ from ...core.enums import (
 
 NonNegativeInteger = Annotated[int, Field(ge=0)]
 BoundedStat = Annotated[int, Field(ge=0, le=100)]
+GridCoordinate = Annotated[int, Field(ge=0, le=9)]
 RequiredName = Annotated[str, Field(min_length=1, max_length=100)]
 RequiredIdentifier = Annotated[str, Field(min_length=1, max_length=100)]
 PersonalityTraitValue = Annotated[int, Field(ge=-100, le=100)]
@@ -35,8 +36,8 @@ class LocationCreate(ApiSchema):
     id: RequiredIdentifier
     name: RequiredName
     location_type: LocationType
-    x: int
-    y: int
+    x: GridCoordinate
+    y: GridCoordinate
     capacity: NonNegativeInteger
     inventory: dict[ResourceType, NonNegativeInteger] = Field(
         default_factory=dict
@@ -75,6 +76,15 @@ class WorldCreate(ApiSchema):
         location_ids = [location.id for location in self.locations]
         if len(set(location_ids)) != len(location_ids):
             raise ValueError("Location IDs must be unique.")
+
+        location_coordinates = [
+            (location.x, location.y)
+            for location in self.locations
+        ]
+        if len(set(location_coordinates)) != len(
+            location_coordinates
+        ):
+            raise ValueError("Location coordinates must be unique.")
 
         agent_ids = [agent.id for agent in self.agents]
         if len(set(agent_ids)) != len(agent_ids):

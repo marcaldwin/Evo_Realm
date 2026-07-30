@@ -119,6 +119,14 @@ def list_worlds() -> list[WorldSummary]:
         ]
 
 
+def list_running_world_ids() -> list[str]:
+    return [
+        summary.id
+        for summary in list_worlds()
+        if summary.status == WorldStatus.RUNNING
+    ]
+
+
 def list_world_agents(world_id: str) -> list[Agent] | None:
     world = get_world(world_id)
     if world is None:
@@ -218,6 +226,26 @@ def step_world(world_id: str) -> World | None:
     if result is None:
         return None
     return result.updated_world
+
+
+def step_running_world_with_result(
+    world_id: str,
+) -> WorldStepResult | None:
+    with SessionLocal.begin() as session:
+        repository = WorldRepository(session)
+        world = repository.get(world_id, for_update=True)
+        if world is None or world.status != WorldStatus.RUNNING:
+            return None
+
+        previous_world = deepcopy(world)
+        updated_world = advance_tick(world)
+        repository.save(updated_world)
+        result = WorldStepResult(
+            previous_world=previous_world,
+            updated_world=updated_world,
+        )
+
+    return result
 
 
 def _transition_world(

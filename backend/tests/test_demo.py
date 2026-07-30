@@ -12,8 +12,8 @@ def test_resource_totals_include_agents_and_locations() -> None:
     totals = calculate_resource_totals(world)
 
     assert totals[ResourceType.FOOD] == 106
-    assert totals[ResourceType.MEDICINE] == 0
-    assert totals[ResourceType.WOOD] == 0
+    assert totals[ResourceType.MEDICINE] == 20
+    assert totals[ResourceType.WOOD] == 30
     assert totals[ResourceType.MONEY] == 0
 
 
