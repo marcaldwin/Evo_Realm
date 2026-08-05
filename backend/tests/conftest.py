@@ -9,6 +9,7 @@ from sqlalchemy.schema import CreateSchema, DropSchema
 from backend.app.db.models import Base, WorldRecord
 from backend.app.db.session import engine
 from backend.app.services import world_service
+from backend.app.dashboard import service as dashboard_service
 
 
 @pytest.fixture(scope="session")
@@ -45,6 +46,11 @@ def database_world_store(
 ) -> Iterator[None]:
     monkeypatch.setattr(
         world_service,
+        "SessionLocal",
+        test_session_factory,
+    )
+    monkeypatch.setattr(
+        dashboard_service,
         "SessionLocal",
         test_session_factory,
     )

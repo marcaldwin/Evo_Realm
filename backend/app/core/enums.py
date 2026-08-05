@@ -47,6 +47,8 @@ class ActionType(str, Enum):
 
 
 class EventType(str, Enum):
+    AGENT_MOVED = "agent_moved"
+    AGENT_MOVEMENT_REJECTED = "agent_movement_rejected"
     FARM_WORK_SUCCEEDED = "farm_work_succeeded"
     FARM_WORK_REJECTED = "farm_work_rejected"
     WAGE_EARNED = "wage_earned"

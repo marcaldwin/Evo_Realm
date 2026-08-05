@@ -1,14 +1,24 @@
 import { DashboardPanel } from './DashboardPanel'
+import type { StreamEventEnvelope } from '../../types/realtime'
 import type { WorldSnapshot } from '../../types/world'
+import { SettlementTilemap } from './SettlementTilemap'
 
 interface SettlementGridPanelProps {
   worldSnapshot: WorldSnapshot | null
+  loading: boolean
+  error: string | null
+  streamEvents: StreamEventEnvelope[]
+  connectionVersion: number
   selectedAgentId: string | null
   onAgentSelect: (agentId: string) => void
 }
 
 export function SettlementGridPanel({
   worldSnapshot,
+  loading,
+  error,
+  streamEvents,
+  connectionVersion,
   selectedAgentId,
   onAgentSelect,
 }: SettlementGridPanelProps) {
@@ -17,33 +27,37 @@ export function SettlementGridPanel({
       title="Settlement Grid"
       className="settlement-grid-panel"
     >
-      {worldSnapshot === null ? (
+      {error !== null ? (
         <div className="placeholder-content">
-          <p>Loading settlement data...</p>
+          <p className="dashboard-error" role="alert">{error}</p>
         </div>
-      ) : worldSnapshot.agents.length === 0 ? (
+      ) : worldSnapshot === null ? (
         <div className="placeholder-content">
-          <p>This world has no agents.</p>
+          <p>
+            {loading
+              ? 'Loading settlement data...'
+              : 'Settlement data is not available.'}
+          </p>
+        </div>
+      ) : worldSnapshot.locations.length === 0 ? (
+        <div className="placeholder-content">
+          <p>This world has no settlement locations.</p>
         </div>
       ) : (
-        <div className="settlement-grid">
-          {worldSnapshot.agents.map((agent) => (
-            <button
-              className={
-                selectedAgentId === agent.id
-                  ? 'settlement-agent settlement-agent--selected'
-                  : 'settlement-agent'
-              }
-              key={agent.id}
-              type="button"
-              aria-pressed={selectedAgentId === agent.id}
-              onClick={() => onAgentSelect(agent.id)}
-            >
-              <strong>{agent.name}</strong>
-              <span>{agent.occupation}</span>
-              <span>{agent.status}</span>
-            </button>
-          ))}
+        <div className="settlement-map">
+          <div className="settlement-map__summary">
+            <span>10 × 10 tiles</span>
+            <span>{worldSnapshot.locations.length} locations</span>
+            <span>{worldSnapshot.agents.length} agents</span>
+          </div>
+          <SettlementTilemap
+            locations={worldSnapshot.locations}
+            agents={worldSnapshot.agents}
+            streamEvents={streamEvents}
+            connectionVersion={connectionVersion}
+            selectedAgentId={selectedAgentId}
+            onAgentSelect={onAgentSelect}
+          />
         </div>
       )}
     </DashboardPanel>

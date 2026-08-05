@@ -3,6 +3,8 @@ import type {
   WorldSnapshot,
   WorldSummary,
 } from '../types/world'
+import type { WorldCommand } from '../types/dashboard'
+import { createApiRequestError } from './errors'
 
 export async function listWorlds(): Promise<WorldSummary[]> {
   const response = await fetch(
@@ -28,6 +30,25 @@ export async function getWorldSnapshot(
   if (!response.ok) {
     throw new Error(
       `World snapshot failed: ${response.status}`,
+    )
+  }
+
+  return response.json() as Promise<WorldSnapshot>
+}
+
+export async function executeWorldCommand(
+  worldId: string,
+  command: WorldCommand,
+): Promise<WorldSnapshot> {
+  const response = await fetch(
+    `${environment.apiBaseUrl}/api/worlds/${encodeURIComponent(worldId)}/${command}`,
+    { method: 'POST' },
+  )
+
+  if (!response.ok) {
+    throw await createApiRequestError(
+      response,
+      `World ${command} request failed: ${response.status}`,
     )
   }
 

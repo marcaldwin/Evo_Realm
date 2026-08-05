@@ -1,6 +1,10 @@
 import type { ConnectionStatus } from '../../types/connection'
 import type { WorldSnapshot } from '../../types/world'
+import type { StreamEventEnvelope } from '../../types/realtime'
 import type { AgentInspectorState } from '../../hooks/useAgentInspector'
+import type { WorldControlsState } from '../../hooks/useWorldControls'
+import type { WorldEventsState } from '../../hooks/useWorldEvents'
+import type { WorldMetricsState } from '../../hooks/useWorldMetrics'
 import { AgentInspectorPanel } from './AgentInspectorPanel'
 import { DashboardHeader } from './DashboardHeader'
 import { LiveEventFeedPanel } from './LiveEventFeedPanel'
@@ -12,6 +16,13 @@ interface DashboardLayoutProps {
   backendStatus: ConnectionStatus
   websocketStatus: ConnectionStatus
   worldSnapshot: WorldSnapshot | null
+  worldSnapshotLoading: boolean
+  worldSnapshotError: string | null
+  worldControls: WorldControlsState
+  worldMetrics: WorldMetricsState
+  worldEvents: WorldEventsState
+  streamEvents: StreamEventEnvelope[]
+  connectionVersion: number
   selectedAgentId: string | null
   onAgentSelect: (agentId: string) => void
   agentInspectorState: AgentInspectorState
@@ -22,6 +33,13 @@ export function DashboardLayout({
   backendStatus,
   websocketStatus,
   worldSnapshot,
+  worldSnapshotLoading,
+  worldSnapshotError,
+  worldControls,
+  worldMetrics,
+  worldEvents,
+  streamEvents,
+  connectionVersion,
   selectedAgentId,
   onAgentSelect,
   agentInspectorState,
@@ -38,15 +56,25 @@ export function DashboardLayout({
         <div className="dashboard__primary">
           <SettlementGridPanel
             worldSnapshot={worldSnapshot}
+            loading={worldSnapshotLoading}
+            error={worldSnapshotError}
+            streamEvents={streamEvents}
+            connectionVersion={connectionVersion}
             selectedAgentId={selectedAgentId}
             onAgentSelect={onAgentSelect}
           />
-          <LiveEventFeedPanel />
+          <LiveEventFeedPanel
+            state={worldEvents}
+            connectionStatus={websocketStatus}
+          />
         </div>
 
         <aside className="dashboard__sidebar">
-          <SimulationControlsPanel />
-          <WorldMetricsPanel />
+          <SimulationControlsPanel
+            worldStatus={worldSnapshot?.status ?? null}
+            controls={worldControls}
+          />
+          <WorldMetricsPanel state={worldMetrics} />
           <AgentInspectorPanel
             state={agentInspectorState}
             locations={worldSnapshot?.locations ?? []}

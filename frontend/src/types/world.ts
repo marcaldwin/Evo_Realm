@@ -1,7 +1,24 @@
+import type { SimulationEvent } from './dashboard'
+
 export type WorldStatus =
   | 'created'
   | 'running'
   | 'paused'
+
+export type AgentOccupation =
+  | 'farmer'
+  | 'merchant'
+  | 'doctor'
+  | 'worker'
+  | 'leader'
+
+export type LocationType =
+  | 'home'
+  | 'farm'
+  | 'market'
+  | 'clinic'
+  | 'workshop'
+  | 'town_hall'
 
 export interface WorldSummary {
   id: string
@@ -15,7 +32,7 @@ export interface WorldSummary {
 export interface AgentSummary {
   id: string
   name: string
-  occupation: string
+  occupation: AgentOccupation
   location_id: string
   status: string
   hunger: number
@@ -28,7 +45,7 @@ export interface AgentSummary {
 export interface LocationSummary {
   id: string
   name: string
-  location_type: string
+  location_type: LocationType
   x: number
   y: number
   capacity: number
@@ -43,4 +60,5 @@ export interface WorldSnapshot {
   status: WorldStatus
   locations: LocationSummary[]
   agents: AgentSummary[]
+  events: SimulationEvent[]
 }

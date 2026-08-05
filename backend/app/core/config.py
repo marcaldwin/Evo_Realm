@@ -1,11 +1,16 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     database_url: str
     frontend_origin: str = "http://localhost:5173"
+    simulation_tick_interval_seconds: float = Field(
+        default=4.0,
+        gt=0,
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
