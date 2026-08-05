@@ -72,6 +72,8 @@ function App() {
       worldControls={worldControls}
       worldMetrics={worldMetrics}
       worldEvents={worldEvents}
+      streamEvents={streamEvents}
+      connectionVersion={connectionVersion}
       selectedAgentId={selectedAgentId}
       onAgentSelect={(agentId) => {
         if (world !== null) {

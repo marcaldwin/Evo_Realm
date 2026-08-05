@@ -90,6 +90,8 @@ describe('SettlementGridPanel', () => {
         worldSnapshot={worldSnapshot}
         loading={false}
         error={null}
+        streamEvents={[]}
+        connectionVersion={0}
         selectedAgentId={null}
         onAgentSelect={vi.fn()}
       />,
@@ -126,6 +128,8 @@ describe('SettlementGridPanel', () => {
         worldSnapshot={worldSnapshot}
         loading={false}
         error={null}
+        streamEvents={[]}
+        connectionVersion={0}
         selectedAgentId={null}
         onAgentSelect={onAgentSelect}
       />,

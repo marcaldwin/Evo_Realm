@@ -2,15 +2,19 @@ import type {
   AgentSummary,
   LocationSummary,
 } from '../../types/world'
+import type { StreamEventEnvelope } from '../../types/realtime'
 import {
   buildSettlementCells,
   LOCATION_ASSETS,
 } from './settlementMap'
 import { AgentMapMarker } from './AgentMapMarker'
+import { collectLatestConfirmedMoves } from './agentMovement'
 
 interface SettlementTilemapProps {
   locations: LocationSummary[]
   agents: AgentSummary[]
+  streamEvents: StreamEventEnvelope[]
+  connectionVersion: number
   selectedAgentId: string | null
   onAgentSelect: (agentId: string) => void
 }
@@ -25,12 +29,18 @@ const decorationSymbols = {
 export function SettlementTilemap({
   locations,
   agents,
+  streamEvents,
+  connectionVersion,
   selectedAgentId,
   onAgentSelect,
 }: SettlementTilemapProps) {
   const cells = buildSettlementCells(locations, agents)
   const locationsById = new Map(
     locations.map((location) => [location.id, location]),
+  )
+  const confirmedMovesByAgent = collectLatestConfirmedMoves(
+    streamEvents,
+    locations,
   )
   const agentCountsByLocation = new Map<string, number>()
   const agentIndexesByLocation = new Map<string, number>()
@@ -132,6 +142,10 @@ export function SettlementTilemap({
               <AgentMapMarker
                 agent={agent}
                 location={location}
+                confirmedMove={
+                  confirmedMovesByAgent.get(agent.id) ?? null
+                }
+                syncVersion={connectionVersion}
                 selected={selectedAgentId === agent.id}
                 stackIndex={stackIndex}
                 stackCount={

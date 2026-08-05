@@ -1,4 +1,5 @@
 import { DashboardPanel } from './DashboardPanel'
+import type { StreamEventEnvelope } from '../../types/realtime'
 import type { WorldSnapshot } from '../../types/world'
 import { SettlementTilemap } from './SettlementTilemap'
 
@@ -6,6 +7,8 @@ interface SettlementGridPanelProps {
   worldSnapshot: WorldSnapshot | null
   loading: boolean
   error: string | null
+  streamEvents: StreamEventEnvelope[]
+  connectionVersion: number
   selectedAgentId: string | null
   onAgentSelect: (agentId: string) => void
 }
@@ -14,6 +17,8 @@ export function SettlementGridPanel({
   worldSnapshot,
   loading,
   error,
+  streamEvents,
+  connectionVersion,
   selectedAgentId,
   onAgentSelect,
 }: SettlementGridPanelProps) {
@@ -48,6 +53,8 @@ export function SettlementGridPanel({
           <SettlementTilemap
             locations={worldSnapshot.locations}
             agents={worldSnapshot.agents}
+            streamEvents={streamEvents}
+            connectionVersion={connectionVersion}
             selectedAgentId={selectedAgentId}
             onAgentSelect={onAgentSelect}
           />

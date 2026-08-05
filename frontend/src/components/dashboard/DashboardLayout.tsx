@@ -1,5 +1,6 @@
 import type { ConnectionStatus } from '../../types/connection'
 import type { WorldSnapshot } from '../../types/world'
+import type { StreamEventEnvelope } from '../../types/realtime'
 import type { AgentInspectorState } from '../../hooks/useAgentInspector'
 import type { WorldControlsState } from '../../hooks/useWorldControls'
 import type { WorldEventsState } from '../../hooks/useWorldEvents'
@@ -20,6 +21,8 @@ interface DashboardLayoutProps {
   worldControls: WorldControlsState
   worldMetrics: WorldMetricsState
   worldEvents: WorldEventsState
+  streamEvents: StreamEventEnvelope[]
+  connectionVersion: number
   selectedAgentId: string | null
   onAgentSelect: (agentId: string) => void
   agentInspectorState: AgentInspectorState
@@ -35,6 +38,8 @@ export function DashboardLayout({
   worldControls,
   worldMetrics,
   worldEvents,
+  streamEvents,
+  connectionVersion,
   selectedAgentId,
   onAgentSelect,
   agentInspectorState,
@@ -53,6 +58,8 @@ export function DashboardLayout({
             worldSnapshot={worldSnapshot}
             loading={worldSnapshotLoading}
             error={worldSnapshotError}
+            streamEvents={streamEvents}
+            connectionVersion={connectionVersion}
             selectedAgentId={selectedAgentId}
             onAgentSelect={onAgentSelect}
           />

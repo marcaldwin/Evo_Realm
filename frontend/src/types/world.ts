@@ -5,6 +5,13 @@ export type WorldStatus =
   | 'running'
   | 'paused'
 
+export type AgentOccupation =
+  | 'farmer'
+  | 'merchant'
+  | 'doctor'
+  | 'worker'
+  | 'leader'
+
 export type LocationType =
   | 'home'
   | 'farm'
@@ -25,7 +32,7 @@ export interface WorldSummary {
 export interface AgentSummary {
   id: string
   name: string
-  occupation: string
+  occupation: AgentOccupation
   location_id: string
   status: string
   hunger: number

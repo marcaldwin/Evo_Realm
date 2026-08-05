@@ -11,12 +11,15 @@ import {
 import {
   buildTilePath,
   getMovementDirection,
+  type ConfirmedAgentMove,
   type Coordinate,
 } from './agentMovement'
 
 interface AgentMapMarkerProps {
   agent: AgentSummary
   location: LocationSummary
+  confirmedMove: ConfirmedAgentMove | null
+  syncVersion: number
   selected: boolean
   stackIndex: number
   stackCount: number
@@ -24,10 +27,20 @@ interface AgentMapMarkerProps {
 }
 
 export const TILE_STEP_DURATION_MS = 300
+export const DESYNC_SNAP_DELAY_MS = 250
+
+function coordinatesMatch(
+  first: Coordinate,
+  second: Coordinate,
+): boolean {
+  return first.x === second.x && first.y === second.y
+}
 
 export function AgentMapMarker({
   agent,
   location,
+  confirmedMove,
+  syncVersion,
   selected,
   stackIndex,
   stackCount,
@@ -39,6 +52,11 @@ export function AgentMapMarker({
   }
   const visualCoordinateRef =
     useRef<Coordinate>(initialCoordinate)
+  const activeDestinationRef = useRef<Coordinate | null>(null)
+  const lastProcessedMoveSequence = useRef(
+    confirmedMove?.sequence ?? -1,
+  )
+  const previousSyncVersion = useRef(syncVersion)
   const [visualCoordinate, setVisualCoordinate] =
     useState<Coordinate>(initialCoordinate)
   const [pendingSteps, setPendingSteps] =
@@ -50,22 +68,84 @@ export function AgentMapMarker({
     (stackIndex - ((stackCount - 1) / 2)) * 16
 
   useEffect(() => {
-    const destination = {
+    const authoritativeCoordinate = {
       x: location.x,
       y: location.y,
     }
+    const syncChanged = previousSyncVersion.current !== syncVersion
+    previousSyncVersion.current = syncVersion
+
+    if (syncChanged) {
+      lastProcessedMoveSequence.current = Math.max(
+        lastProcessedMoveSequence.current,
+        confirmedMove?.sequence ?? -1,
+      )
+      activeDestinationRef.current = null
+      visualCoordinateRef.current = authoritativeCoordinate
+
+      const syncFrame = window.requestAnimationFrame(() => {
+        setPendingSteps([])
+        setVisualCoordinate(authoritativeCoordinate)
+      })
+
+      return () => window.cancelAnimationFrame(syncFrame)
+    }
+
+    const activeDestination = activeDestinationRef.current
+    if (
+      coordinatesMatch(
+        visualCoordinateRef.current,
+        authoritativeCoordinate,
+      )
+      || (
+        activeDestination !== null
+        && coordinatesMatch(
+          activeDestination,
+          authoritativeCoordinate,
+        )
+      )
+    ) {
+      return undefined
+    }
+
+    const snapTimer = window.setTimeout(() => {
+      activeDestinationRef.current = null
+      visualCoordinateRef.current = authoritativeCoordinate
+      setPendingSteps([])
+      setVisualCoordinate(authoritativeCoordinate)
+    }, DESYNC_SNAP_DELAY_MS)
+
+    return () => window.clearTimeout(snapTimer)
+  }, [
+    confirmedMove?.sequence,
+    location.x,
+    location.y,
+    syncVersion,
+  ])
+
+  useEffect(() => {
+    if (
+      confirmedMove === null
+      || confirmedMove.sequence
+        <= lastProcessedMoveSequence.current
+    ) {
+      return undefined
+    }
+
+    lastProcessedMoveSequence.current = confirmedMove.sequence
+    activeDestinationRef.current = confirmedMove.destination
 
     const pathFrame = window.requestAnimationFrame(() => {
       setPendingSteps(
         buildTilePath(
           visualCoordinateRef.current,
-          destination,
+          confirmedMove.destination,
         ),
       )
     })
 
     return () => window.cancelAnimationFrame(pathFrame)
-  }, [location.x, location.y])
+  }, [confirmedMove])
 
   useEffect(() => {
     const nextStep = pendingSteps[0]
@@ -117,14 +197,11 @@ export function AgentMapMarker({
       }}
       onClick={() => onSelect(agent.id)}
     >
-      {agent.occupation === 'farmer' ? (
-        <AgentSprite
-          direction={direction}
-          walking={walking || agent.status === 'moving'}
-        />
-      ) : (
-        agent.name.slice(0, 1).toUpperCase()
-      )}
+      <AgentSprite
+        occupation={agent.occupation}
+        direction={direction}
+        walking={walking}
+      />
       <span className="settlement-agent__name">
         {agent.name}
       </span>
