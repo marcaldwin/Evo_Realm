@@ -26,7 +26,7 @@ interface AgentMapMarkerProps {
   onSelect: (agentId: string) => void
 }
 
-export const TILE_STEP_DURATION_MS = 300
+export const TILE_STEP_DURATION_MS = 600
 export const DESYNC_SNAP_DELAY_MS = 250
 
 function coordinatesMatch(

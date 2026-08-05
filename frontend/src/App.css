@@ -327,18 +327,18 @@
   border: 0;
   border-radius: 8px;
   place-items: center;
-  background: rgb(12 17 23 / 18%);
+  background: transparent;
   color: #f5f7f8;
   cursor: pointer;
   font-size: 0.65rem;
   font-weight: 800;
-  box-shadow: 0 2px 3px rgb(12 17 23 / 45%);
+  box-shadow: none;
   pointer-events: auto;
   transform: translate(-50%, -50%);
   transition:
-    left 300ms linear,
-    top 300ms linear,
-    margin-left 300ms linear;
+    left 600ms linear,
+    top 600ms linear,
+    margin-left 600ms linear;
   will-change: left, top;
 }
 
@@ -382,16 +382,37 @@
 }
 
 .agent-sprite--walking {
-  animation: agent-sprite-walk 420ms steps(3) infinite;
+  animation: agent-sprite-walk 720ms linear infinite;
 }
 
 @keyframes agent-sprite-walk {
-  from {
+  0%,
+  24.9% {
+    left: calc(50% - 7.5px);
     background-position-x: 0;
   }
 
-  to {
-    background-position-x: -174px;
+  25%,
+  49.9% {
+    left: 50%;
+    background-position-x: -58px;
+  }
+
+  50%,
+  74.9% {
+    left: calc(50% + 7.5px);
+    background-position-x: -116px;
+  }
+
+  75%,
+  99.9% {
+    left: 50%;
+    background-position-x: -58px;
+  }
+
+  100% {
+    left: calc(50% - 7.5px);
+    background-position-x: 0;
   }
 }
 
@@ -416,11 +437,12 @@
 }
 
 .settlement-agent--selected {
-  border-color: #4dcc8c;
-  background: #1f6d50;
-  box-shadow:
-    0 0 0 2px rgb(77 204 140 / 28%),
-    0 2px 3px rgb(12 17 23 / 45%);
+  background: transparent;
+  box-shadow: none;
+}
+
+.settlement-agent--selected .agent-sprite {
+  filter: drop-shadow(0 0 4px rgb(77 204 140 / 90%));
 }
 
 @media (prefers-reduced-motion: reduce) {
