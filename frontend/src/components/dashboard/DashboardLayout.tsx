@@ -5,9 +5,11 @@ import type { AgentInspectorState } from '../../hooks/useAgentInspector'
 import type { WorldControlsState } from '../../hooks/useWorldControls'
 import type { WorldEventsState } from '../../hooks/useWorldEvents'
 import type { WorldMetricsState } from '../../hooks/useWorldMetrics'
+import type { WorldRelationshipsState } from '../../hooks/useWorldRelationships'
 import { AgentInspectorPanel } from './AgentInspectorPanel'
 import { DashboardHeader } from './DashboardHeader'
 import { LiveEventFeedPanel } from './LiveEventFeedPanel'
+import { RelationshipGraphPanel } from './RelationshipGraphPanel'
 import { SettlementGridPanel } from './SettlementGridPanel'
 import { SimulationControlsPanel } from './SimulationControlsPanel'
 import { WorldMetricsPanel } from './WorldMetricsPanel'
@@ -21,6 +23,7 @@ interface DashboardLayoutProps {
   worldControls: WorldControlsState
   worldMetrics: WorldMetricsState
   worldEvents: WorldEventsState
+  worldRelationships: WorldRelationshipsState
   streamEvents: StreamEventEnvelope[]
   connectionVersion: number
   selectedAgentId: string | null
@@ -38,6 +41,7 @@ export function DashboardLayout({
   worldControls,
   worldMetrics,
   worldEvents,
+  worldRelationships,
   streamEvents,
   connectionVersion,
   selectedAgentId,
@@ -60,6 +64,12 @@ export function DashboardLayout({
             error={worldSnapshotError}
             streamEvents={streamEvents}
             connectionVersion={connectionVersion}
+            selectedAgentId={selectedAgentId}
+            onAgentSelect={onAgentSelect}
+          />
+          <RelationshipGraphPanel
+            agents={worldSnapshot?.agents ?? []}
+            state={worldRelationships}
             selectedAgentId={selectedAgentId}
             onAgentSelect={onAgentSelect}
           />

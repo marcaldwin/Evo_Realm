@@ -70,6 +70,12 @@ class SocialRepository:
             y=row[3],
         )
 
+    def world_exists(self, world_id: str) -> bool:
+        statement = select(WorldRecord.database_id).where(
+            WorldRecord.id == world_id
+        )
+        return self.session.scalar(statement) is not None
+
     def has_active_conversation(
         self,
         world_database_id: int,
@@ -300,6 +306,33 @@ class SocialRepository:
                 selectinload(RelationshipRecord.target_agent),
             )
             .order_by(RelationshipRecord.target_agent_database_id)
+        )
+        return [
+            self.to_relationship(record)
+            for record in self.session.scalars(statement)
+        ]
+
+    def list_world_relationships(
+        self,
+        world_id: str,
+    ) -> list[DirectionalRelationship]:
+        statement = (
+            select(RelationshipRecord)
+            .join(
+                WorldRecord,
+                RelationshipRecord.world_database_id
+                == WorldRecord.database_id,
+            )
+            .where(WorldRecord.id == world_id)
+            .options(
+                selectinload(RelationshipRecord.world),
+                selectinload(RelationshipRecord.source_agent),
+                selectinload(RelationshipRecord.target_agent),
+            )
+            .order_by(
+                RelationshipRecord.source_agent_database_id,
+                RelationshipRecord.target_agent_database_id,
+            )
         )
         return [
             self.to_relationship(record)

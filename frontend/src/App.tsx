@@ -9,6 +9,7 @@ import { useBackendConnection } from './hooks/useBackendConnection'
 import { useWorldControls } from './hooks/useWorldControls'
 import { useWorldEvents } from './hooks/useWorldEvents'
 import { useWorldMetrics } from './hooks/useWorldMetrics'
+import { useWorldRelationships } from './hooks/useWorldRelationships'
 import { useWorldStream } from './hooks/useWorldStream'
 import { useWorldSnapshot } from './hooks/useWorldSnapshot'
 
@@ -50,6 +51,11 @@ function App() {
     connectionVersion,
     worldControls.completionVersion,
   )
+  const worldRelationships = useWorldRelationships(
+    worldId,
+    streamEvents,
+    connectionVersion,
+  )
   const selectedAgentId = (
     selectedAgent !== null
     && selectedAgent.worldId === world?.id
@@ -72,6 +78,7 @@ function App() {
       worldControls={worldControls}
       worldMetrics={worldMetrics}
       worldEvents={worldEvents}
+      worldRelationships={worldRelationships}
       streamEvents={streamEvents}
       connectionVersion={connectionVersion}
       selectedAgentId={selectedAgentId}

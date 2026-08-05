@@ -455,6 +455,179 @@
   }
 }
 
+.relationship-graph-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.relationship-graph-controls label {
+  display: grid;
+  gap: 6px;
+  color: #9bacbd;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.relationship-graph-controls select {
+  min-width: 170px;
+  padding: 8px 10px;
+  border: 1px solid #314052;
+  border-radius: 8px;
+  background: #0c1117;
+  color: #e8edf2;
+}
+
+.relationship-graph-controls input[type='range'] {
+  width: min(230px, 60vw);
+  accent-color: #4dcc8c;
+}
+
+.relationship-graph-viewport {
+  overflow-x: auto;
+  border: 1px solid #273342;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at center, #17232f 0, #0c1117 70%);
+}
+
+.relationship-graph {
+  display: block;
+  width: 100%;
+  min-width: 560px;
+}
+
+.relationship-edge {
+  fill: none;
+  stroke-width: 2;
+  opacity: 0.8;
+}
+
+.relationship-edge--positive {
+  stroke: #4dcc8c;
+}
+
+.relationship-edge--neutral {
+  stroke: #8da2b5;
+}
+
+.relationship-edge--negative {
+  stroke: #e06666;
+}
+
+.relationship-arrow--positive {
+  fill: #4dcc8c;
+}
+
+.relationship-arrow--neutral {
+  fill: #8da2b5;
+}
+
+.relationship-arrow--negative {
+  fill: #e06666;
+}
+
+.relationship-edge__count {
+  fill: #e8edf2;
+  font-size: 11px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: #0c1117;
+  stroke-width: 4px;
+  text-anchor: middle;
+}
+
+.relationship-node {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 160ms ease;
+}
+
+.relationship-node circle {
+  fill: #1f3040;
+  stroke: #71859a;
+  stroke-width: 2;
+  transition:
+    fill 160ms ease,
+    stroke 160ms ease,
+    stroke-width 160ms ease;
+}
+
+.relationship-node:hover circle,
+.relationship-node:focus-visible circle {
+  fill: #294156;
+  stroke: #f0c868;
+  stroke-width: 3;
+}
+
+.relationship-node--selected circle {
+  fill: #1f503e;
+  stroke: #4dcc8c;
+  stroke-width: 4;
+}
+
+.relationship-node--dimmed {
+  opacity: 0.42;
+}
+
+.relationship-node__name,
+.relationship-node__occupation {
+  fill: #f5f7f8;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+.relationship-node__name {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.relationship-node__occupation {
+  fill: #9bacbd;
+  font-size: 9px;
+  text-transform: capitalize;
+}
+
+.relationship-list {
+  display: grid;
+  gap: 8px;
+  max-height: 230px;
+  margin: 14px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.relationship-list li {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.4fr) repeat(4, minmax(90px, 1fr));
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid #273342;
+  border-radius: 8px;
+  background: #0c1117;
+  color: #9bacbd;
+  font-size: 0.72rem;
+}
+
+.relationship-list strong {
+  color: #e8edf2;
+}
+
+@media (width <= 760px) {
+  .relationship-list li {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .relationship-list strong {
+    grid-column: 1 / -1;
+  }
+}
+
 .live-event-feed-panel .dashboard-panel__content {
   min-height: 220px;
 }

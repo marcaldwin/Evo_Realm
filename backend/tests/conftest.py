@@ -9,6 +9,7 @@ from sqlalchemy.schema import CreateSchema, DropSchema
 from backend.app.db.models import Base, WorldRecord
 from backend.app.db.session import engine
 from backend.app.services import world_service
+from backend.app.services import relationship_service
 from backend.app.dashboard import service as dashboard_service
 
 
@@ -51,6 +52,11 @@ def database_world_store(
     )
     monkeypatch.setattr(
         dashboard_service,
+        "SessionLocal",
+        test_session_factory,
+    )
+    monkeypatch.setattr(
+        relationship_service,
         "SessionLocal",
         test_session_factory,
     )
